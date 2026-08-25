@@ -9,5 +9,5 @@ app = FastAPI(
 @app.get("/health")
 def health_check():
     return {
-        "status" : "online"
+        "status": "online"
     }
