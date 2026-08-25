@@ -1,19 +1,23 @@
 {
   "name": "locus",
-  "version": "1.0.0",
+  "version": "0.1.0",
+  "private": true,
   "description": "Multi-Vendor DVR/NVR Forensic Analysis Tool for Standardized Acquisition, Recovery, and Analysis of Surveillance Evidence.",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev:backend": "cd backend && source venv/bin/activate && uvicorn app.main:app --reload --port 8000",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev": "concurrently -k -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
+    "setup:backend": "cd backend && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt",
+    "setup": "pnpm install && pnpm run setup:backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rehanhalai/locus.git"
   },
   "author": "Rehan Halai",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/rehanhalai/locus/issues"
-  },
-  "homepage": "https://github.com/rehanhalai/locus#readme"
+  "license": "ISC"
 }

@@ -1,0 +1,31 @@
+# Node / JS
+node_modules/
+dist/
+dist-electron/
+.pnpm-store/
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+
+# Forensic Data & Local DBs
+*.dd
+*.raw
+*.img
+*.db
+*.sqlite
+*.sqlite3
+!shared/samples/.gitkeep
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
