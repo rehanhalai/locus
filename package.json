@@ -1,0 +1,19 @@
+{
+  "name": "locus",
+  "version": "1.0.0",
+  "description": "Multi-Vendor DVR/NVR Forensic Analysis Tool for Standardized Acquisition, Recovery, and Analysis of Surveillance Evidence.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rehanhalai/locus.git"
+  },
+  "author": "Rehan Halai",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rehanhalai/locus/issues"
+  },
+  "homepage": "https://github.com/rehanhalai/locus#readme"
+}
