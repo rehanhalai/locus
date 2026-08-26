@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import app.db.models
 from app.db.session import Base, engine
 from app.modules.cases.router import router as cases_router
-# from app.modules.acquisition.router import router as acquisition_router
+from app.modules.acquisition.router import router as acquisition_router
 
 # Ensure SQLite tables exist
 Base.metadata.create_all(bind=engine)
@@ -23,7 +23,7 @@ app.add_middleware(
 )
 
 app.include_router(cases_router, prefix="/api/v1")
-# app.include_router(acquisition_router, prefix="/api/v1")
+app.include_router(acquisition_router, prefix="/api/v1")
 
 @app.get("/health", tags=["System"])
 def health_check():

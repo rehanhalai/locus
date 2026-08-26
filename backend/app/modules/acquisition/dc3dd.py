@@ -1,11 +1,10 @@
+import os
 import re
 import shutil
-import platform
-import os
 import asyncio
+import platform
 from pathlib import Path
-from typing import Dict, Optional, Any
-from collections.abc import AsyncGenerator
+from typing import AsyncGenerator, Dict, Optional, Any
 
 def get_dc3dd_path() -> Path:
     base_dir = Path(__file__).resolve().parents[3]
