@@ -1,6 +1,35 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum, BigInteger, Boolean
+from enum import Enum
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum as SAEnum, BigInteger, Boolean
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.session import Base
+
+class CaseStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    ARCHIVED = "ARCHIVED"
+    CLOSED = "CLOSED"
+
+
+class Case(Base):
+    __tablename__ = "cases"
+
+    id = Column(String(64), primary_key=True, index=True)  # e.g., "case_a1b2c3d4"
+    case_number = Column(String(64), unique=True, index=True, nullable=False)  # e.g., "LOCUS-2026-001"
+    case_name = Column(String(255), nullable=False)
+    investigator = Column(String(128), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(SAEnum(CaseStatus), default=CaseStatus.ACTIVE, nullable=False)
+    storage_path = Column(String(512), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    evidence_files = relationship("EvidenceFiles", back_populates="case", cascade="all, delete-orphan")
+
+
+class IntegrityStatus(str, Enum):
+    VERIFIED = "VERIFIED"
+    FAILED = "FAILED"
+
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
@@ -12,7 +41,7 @@ class AuditLog(Base):
     action = Column(String(64), nullable=False)  # e.g., "CASE_INGESTION", "OFFSET_CALIBRATION"
     actor = Column(String(128), default="Forensic Officer")  # Who performed the action
     details = Column(Text, nullable=True)  # e.g., "Baseline SHA-256 computed: e3b0c44..."
-    integrity_status = Column(Enum("VERIFIED", "FAILED"), default="VERIFIED")  # "VERIFIED" or "FAILED"
+    integrity_status = Column(SAEnum(IntegrityStatus), default=IntegrityStatus.VERIFIED)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
     
 
@@ -20,7 +49,7 @@ class EvidenceFiles(Base):
     __tablename__ = "evidence_files"
     
     id = Column(String(64), primary_key=True, index=True)  # e.g., "ev_a3f5b8c9"
-    case_id = Column(String(64), index=True, nullable=False)
+    case_id = Column(String(64), ForeignKey("cases.id"), index=True, nullable=False)
     source_type = Column(String(32), nullable=False)  # "PHYSICAL_DEVICE" or "IMAGE_FILE"
     source_device = Column(String(255), nullable=True)  # e.g., "/dev/sdb" or original filename
     file_path = Column(Text, nullable=False)  # Absolute path to the .raw/.dd image
@@ -33,3 +62,5 @@ class EvidenceFiles(Base):
     bad_sectors_count = Column(Integer, default=0)
     write_block_verified = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    case = relationship("Case", back_populates="evidence_files")
