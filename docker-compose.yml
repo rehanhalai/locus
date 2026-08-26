@@ -1,0 +1,25 @@
+services:
+  backend: 
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports: 
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/.venv
+    environment:
+      - DATABASE_URL=sqlite:///./data/forensics.db
+      - CORS_ORIGINS=http://localhost:5173
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports: 
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
