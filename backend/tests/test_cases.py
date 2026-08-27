@@ -3,7 +3,7 @@ def test_create_case_success(client):
         "case_number": "CASE-TEST-001",
         "case_name": "Store Burglary CCTV",
         "investigator": "Detective Miller",
-        "description": "Acquired Dahua DVR from convenience store"
+        "description": "Acquired Dahua DVR from convenience store",
     }
     response = client.post("/api/v1/cases/", json=payload)
     assert response.status_code == 201
@@ -22,7 +22,7 @@ def test_create_case_duplicate_number_returns_409(client):
     payload = {
         "case_number": "CASE-DUP-001",
         "case_name": "Duplicate Test Case",
-        "investigator": "Officer Davis"
+        "investigator": "Officer Davis",
     }
     # First create
     res1 = client.post("/api/v1/cases/", json=payload)
@@ -46,7 +46,7 @@ def test_get_case_by_id_and_not_found(client):
     payload = {
         "case_number": "CASE-GET-002",
         "case_name": "Retrieval Test",
-        "investigator": "Officer Davis"
+        "investigator": "Officer Davis",
     }
     create_res = client.post("/api/v1/cases/", json=payload)
     case_id = create_res.json()["id"]
@@ -64,7 +64,7 @@ def test_update_case_status(client):
     payload = {
         "case_number": "CASE-UPDATE-003",
         "case_name": "Status Update Test",
-        "investigator": "Officer Davis"
+        "investigator": "Officer Davis",
     }
     create_res = client.post("/api/v1/cases/", json=payload)
     case_id = create_res.json()["id"]
@@ -82,7 +82,7 @@ def test_list_cases_with_search_filter(client):
     payload = {
         "case_number": "CASE-FILTER-999",
         "case_name": "UniqueFilterKeyword",
-        "investigator": "Special Agent X"
+        "investigator": "Special Agent X",
     }
     create_res = client.post("/api/v1/cases/", json=payload)
     case_id = create_res.json()["id"]

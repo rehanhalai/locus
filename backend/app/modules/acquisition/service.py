@@ -1,15 +1,16 @@
+import asyncio
 import os
 import uuid
-import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
+
 from sqlalchemy.orm import Session
 
+from app.db.models import AuditLog, Case, EvidenceFiles, IntegrityStatus
 from app.db.session import SessionLocal
-from app.db.models import Case, EvidenceFiles, AuditLog, IntegrityStatus
-from app.modules.acquisition.task_manager import task_manager
 from app.modules.acquisition.dc3dd import run_dc3dd
+from app.modules.acquisition.task_manager import task_manager
 
 
 class AcquisitionService:
@@ -19,9 +20,9 @@ class AcquisitionService:
         db: Session,
         case_id: str,
         source_device: str,
-        image_filename: Optional[str] = None,
-        investigator: str = "Forensic Officer"
-    ) -> Dict[str, Any]:
+        image_filename: str | None = None,
+        investigator: str = "Forensic Officer",
+    ) -> dict[str, Any]:
 
         # 1. Validate that the case exists
         case = db.query(Case).filter(Case.id == case_id).first()
@@ -29,7 +30,11 @@ class AcquisitionService:
             raise KeyError(f"Case with ID '{case_id}' not found.")
 
         # 2. Determine target output path inside case storage
-        filename = image_filename.strip() if image_filename else f"evidence_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.dd"
+        filename = (
+            image_filename.strip()
+            if image_filename
+            else f"evidence_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.dd"
+        )
         if not filename.endswith(".dd") and not filename.endswith(".raw"):
             filename = f"{filename}.dd"
 
@@ -44,7 +49,7 @@ class AcquisitionService:
             task_id=task_id,
             case_id=case_id,
             source_device=source_device,
-            output_path=str(output_path)
+            output_path=str(output_path),
         )
 
         # 4. Fire background async worker (non-blocking)
@@ -54,7 +59,7 @@ class AcquisitionService:
                 case_id=case_id,
                 source_device=source_device,
                 output_path=str(output_path),
-                investigator=investigator
+                investigator=investigator,
             )
         )
 
@@ -68,12 +73,7 @@ class AcquisitionService:
 
     @classmethod
     async def _run_acquisition_worker(
-        cls,
-        task_id: str,
-        case_id: str,
-        source_device: str,
-        output_path: str,
-        investigator: str
+        cls, task_id: str, case_id: str, source_device: str, output_path: str, investigator: str
     ):
         """
         Background worker that iterates over dc3dd stream, broadcasts progress,
@@ -99,8 +99,7 @@ class AcquisitionService:
                 file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
 
                 is_physical = (
-                    source_device.startswith("/dev") or 
-                    "physicaldrive" in source_device.lower()
+                    source_device.startswith("/dev") or "physicaldrive" in source_device.lower()
                 )
 
                 with SessionLocal() as db:
@@ -142,7 +141,7 @@ class AcquisitionService:
                         "md5": final_md5,
                         "output_path": output_path,
                         "file_size_bytes": file_size,
-                    }
+                    },
                 )
 
         except Exception as e:
@@ -151,5 +150,5 @@ class AcquisitionService:
                 {
                     "type": "ERROR",
                     "error": str(e),
-                }
+                },
             )

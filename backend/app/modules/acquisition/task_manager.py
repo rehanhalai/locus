@@ -1,19 +1,17 @@
-import json
 import asyncio
-from typing import Dict, Any, Optional, List, AsyncGenerator
+import json
+from collections.abc import AsyncGenerator
 from datetime import datetime
+from typing import Any
+
 
 class TaskManager:
     def __init__(self) -> None:
-        self._tasks: Dict[str, Dict[str, Any]] = {}
+        self._tasks: dict[str, dict[str, Any]] = {}
 
     def create_task(
-        self,
-        task_id: str,
-        case_id: str,
-        source_device: str,
-        output_path: str
-    ) -> Dict[str, Any]:
+        self, task_id: str, case_id: str, source_device: str, output_path: str
+    ) -> dict[str, Any]:
         task_data = {
             "task_id": task_id,
             "case_id": case_id,
@@ -27,10 +25,10 @@ class TaskManager:
         self._tasks[task_id] = task_data
         return task_data
 
-    def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+    def get_task(self, task_id: str) -> dict[str, Any] | None:
         return self._tasks.get(task_id)
 
-    def list_tasks(self) -> List[Dict[str, Any]]:
+    def list_tasks(self) -> list[dict[str, Any]]:
         return [
             {
                 "task_id": t["task_id"],
@@ -44,7 +42,7 @@ class TaskManager:
             for t in self._tasks.values()
         ]
 
-    async def broadcast(self, task_id: str, event: Dict[str, Any]):
+    async def broadcast(self, task_id: str, event: dict[str, Any]):
         task = self._tasks.get(task_id)
         if not task:
             return
@@ -58,7 +56,7 @@ class TaskManager:
         for queue in list(task["subscribers"]):
             await queue.put(event)
 
-    async def subscribe(self, task_id: str) -> AsyncGenerator[str, None]:
+    async def subscribe(self, task_id: str) -> AsyncGenerator[str]:
         task = self._tasks.get(task_id)
         if not task:
             yield f"data: {json.dumps({'type': 'ERROR', 'error': f'Task {task_id} not found'})}\n\n"
@@ -84,5 +82,6 @@ class TaskManager:
         finally:
             if client_queue in task["subscribers"]:
                 task["subscribers"].remove(client_queue)
+
 
 task_manager = TaskManager()

@@ -1,23 +1,24 @@
 import uuid
 from pathlib import Path
-from typing import List, Optional
-from sqlalchemy.orm import Session
+
 from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.db.models import Case, AuditLog, CaseStatus, IntegrityStatus
+from app.db.models import AuditLog, Case, CaseStatus, IntegrityStatus
 from app.modules.cases.schemas import CaseCreate, CaseUpdate
+
 
 class CaseService:
     @staticmethod
     def _initialize_case_storage(case_id: str) -> str:
         base_dir = Path(settings.DATABASE_URL.replace("sqlite:///", "")).parent.resolve()
         case_dir = base_dir / "storage" / "cases" / case_id
-        
+
         subdirs = ["acquisition", "carved", "thumbnails", "reports"]
         for sub in subdirs:
             (case_dir / sub).mkdir(parents=True, exist_ok=True)
-            
+
         return str(case_dir)
 
     @classmethod
@@ -54,10 +55,8 @@ class CaseService:
 
     @staticmethod
     def list_cases(
-        db: Session, 
-        status: Optional[CaseStatus] = None, 
-        search: Optional[str] = None
-    ) -> List[dict]:
+        db: Session, status: CaseStatus | None = None, search: str | None = None
+    ) -> list[dict]:
         query = db.query(Case)
 
         if status:
@@ -69,12 +68,12 @@ class CaseService:
                 or_(
                     Case.case_number.ilike(term),
                     Case.case_name.ilike(term),
-                    Case.investigator.ilike(term)
+                    Case.investigator.ilike(term),
                 )
             )
 
         cases = query.order_by(Case.created_at.desc()).all()
-        
+
         result = []
         for c in cases:
             c_dict = {
@@ -87,10 +86,10 @@ class CaseService:
                 "storage_path": c.storage_path,
                 "created_at": c.created_at,
                 "updated_at": c.updated_at,
-                "evidence_count": len(c.evidence_files) if c.evidence_files else 0
+                "evidence_count": len(c.evidence_files) if c.evidence_files else 0,
             }
             result.append(c_dict)
-            
+
         return result
 
     @staticmethod
@@ -118,7 +117,9 @@ class CaseService:
             updated_fields.append("description")
         if payload.status is not None:
             case.status = payload.status
-            updated_fields.append(f"status={case.status.value if hasattr(case.status, 'value') else case.status}")
+            updated_fields.append(
+                f"status={case.status.value if hasattr(case.status, 'value') else case.status}"
+            )
 
         audit = AuditLog(
             case_id=case_id,

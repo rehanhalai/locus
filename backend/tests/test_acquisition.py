@@ -55,7 +55,7 @@ def test_start_clone_nonexistent_case_returns_404(client):
     payload = {
         "case_id": "case_nonexistent_0000",
         "source_device": "dummy_device.raw",
-        "image_filename": "test.dd"
+        "image_filename": "test.dd",
     }
     response = client.post("/api/v1/acquisition/clone", json=payload)
     assert response.status_code == 404
