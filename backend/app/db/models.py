@@ -1,7 +1,7 @@
 from enum import Enum
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum as SAEnum, BigInteger, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from app.db.session import Base
 
 class CaseStatus(str, Enum):
@@ -20,8 +20,8 @@ class Case(Base):
     description = Column(Text, nullable=True)
     status = Column(SAEnum(CaseStatus), default=CaseStatus.ACTIVE, nullable=False)
     storage_path = Column(String(512), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc), nullable=False)
 
     evidence_files = relationship("EvidenceFiles", back_populates="case", cascade="all, delete-orphan")
 
@@ -42,7 +42,7 @@ class AuditLog(Base):
     actor = Column(String(128), default="Forensic Officer")  # Who performed the action
     details = Column(Text, nullable=True)  # e.g., "Baseline SHA-256 computed: e3b0c44..."
     integrity_status = Column(SAEnum(IntegrityStatus), default=IntegrityStatus.VERIFIED)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    timestamp = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
     
 
 class EvidenceFiles(Base):
@@ -61,6 +61,6 @@ class EvidenceFiles(Base):
     
     bad_sectors_count = Column(Integer, default=0)
     write_block_verified = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
 
     case = relationship("Case", back_populates="evidence_files")

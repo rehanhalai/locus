@@ -1,3 +1,4 @@
+from pydantic import ConfigDict
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
@@ -26,8 +27,7 @@ class EvidenceItem(BaseModel):
     bad_sectors_count: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CaseResponse(BaseModel):
     id: str
@@ -41,8 +41,7 @@ class CaseResponse(BaseModel):
     updated_at: datetime
     evidence_count: int = 0
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CaseDetailResponse(CaseResponse):
     evidence_files: List[EvidenceItem] = []

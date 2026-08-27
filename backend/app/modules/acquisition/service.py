@@ -1,7 +1,7 @@
 import os
 import uuid
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
@@ -29,7 +29,7 @@ class AcquisitionService:
             raise KeyError(f"Case with ID '{case_id}' not found.")
 
         # 2. Determine target output path inside case storage
-        filename = image_filename.strip() if image_filename else f"evidence_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.dd"
+        filename = image_filename.strip() if image_filename else f"evidence_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.dd"
         if not filename.endswith(".dd") and not filename.endswith(".raw"):
             filename = f"{filename}.dd"
 

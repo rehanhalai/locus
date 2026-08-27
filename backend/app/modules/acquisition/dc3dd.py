@@ -47,14 +47,13 @@ def paser_dc3dd_line(line : str ) -> Optional[Dict[str,Any]]:
         hash_val = md5_match.group(1) or md5_match.group(2)
         return {"type": "HASH_MD5", "md5": hash_val}
 
-    progress_match = re.search(r"(?:copied\s*\(\s*(\d+(?:\.\d+)?)%\s*\)|\[(\d+(?:\.\d+)?)%)[^,\n]*?,\s*([\d\.]+\s*[KMGT]?B?/s)", line, re.IGNORECASE)
-    if progress_match:
-        percent = progress_match.group(1) or progress_match.group(2)
-        speed = progress_match.group(3)
+    percent_match = re.search(r"(?:copied\s*\(\s*|\[)(\d+(?:\.\d+)?)%", line, re.IGNORECASE)
+    if percent_match:
+        speed_match = re.search(r"([\d\.]+\s*[KMGT]?B?/s)", line, re.IGNORECASE)
         return {
             "type": "PROGRESS",
-            "percent": float(percent),
-            "speed": speed,
+            "percent": float(percent_match.group(1)),
+            "speed": speed_match.group(1) if speed_match else "UNKNOWN",
             "raw": line,
         }
     return None
