@@ -73,6 +73,10 @@ jobs:
       - name: ESLint Lint Check
         run: pnpm --filter frontend lint
 
+      - name: Prettier Format Check
+        run: pnpm --filter frontend format:check
+
       - name: TypeScript & Vite Build Check
         run: pnpm --filter frontend build
+
 
