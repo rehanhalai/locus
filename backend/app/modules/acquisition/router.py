@@ -3,11 +3,40 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.modules.acquisition.schemas import CloneRequest, CloneResponse, TaskResponse
+from app.modules.acquisition.schemas import (
+    CloneRequest,
+    CloneResponse,
+    IngestFileRequest,
+    IngestFileResponse,
+    TaskResponse,
+)
 from app.modules.acquisition.service import AcquisitionService
 from app.modules.acquisition.task_manager import task_manager
 
 router = APIRouter(prefix="/acquisition", tags=["Acquisition"])
+
+
+@router.post(
+    "/ingest-file", response_model=IngestFileResponse, status_code=status.HTTP_202_ACCEPTED
+)
+async def ingest_image_file(payload: IngestFileRequest, db: Session = Depends(get_db)):
+    try:
+        result = AcquisitionService.start_file_ingestion(
+            db=db,
+            case_id=payload.case_id,
+            file_path=payload.file_path,
+            investigator=payload.investigator or "Forensic Officer",
+        )
+        return result
+    except KeyError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to start file ingestion: {str(e)}",
+        )
 
 
 @router.post("/clone", response_model=CloneResponse, status_code=status.HTTP_202_ACCEPTED)
