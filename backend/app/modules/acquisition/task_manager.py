@@ -1,7 +1,7 @@
 import asyncio
 import json
 from collections.abc import AsyncGenerator
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -17,10 +17,10 @@ class TaskManager:
             "case_id": case_id,
             "source_device": source_device,
             "output_path": output_path,
-            "status": "RUNNING",  # "RUNNING", "COMPLETED", "FAILED"
+            "status": "PROCESSING",
             "latest_event": None,
             "subscribers": [],  # List of asyncio.Queue instances
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
         self._tasks[task_id] = task_data
         return task_data

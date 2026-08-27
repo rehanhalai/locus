@@ -32,3 +32,20 @@ class TaskResponse(BaseModel):
     status: str
     latest_event: dict[str, Any] | None = None
     created_at: str
+
+
+class IngestFileRequest(BaseModel):
+    case_id: str = Field(..., description="Target Case ID, e.g. case_bf70e664")
+    file_path: str = Field(
+        ..., description="Absolute or relative path to the existing disk image on disk"
+    )
+    investigator: str | None = Field(
+        "Forensic Officer", description="Name/badge of investigator performing ingestion"
+    )
+
+
+class IngestFileResponse(BaseModel):
+    task_id: str
+    status: str
+    case_id: str
+    file_path: str

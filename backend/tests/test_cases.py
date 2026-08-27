@@ -1,6 +1,10 @@
+import uuid
+
+
 def test_create_case_success(client):
+    unique_num = f"CASE-{uuid.uuid4().hex[:6]}"
     payload = {
-        "case_number": "CASE-TEST-001",
+        "case_number": unique_num,
         "case_name": "Store Burglary CCTV",
         "investigator": "Detective Miller",
         "description": "Acquired Dahua DVR from convenience store",
@@ -8,7 +12,7 @@ def test_create_case_success(client):
     response = client.post("/api/v1/cases/", json=payload)
     assert response.status_code == 201
     data = response.json()
-    assert data["case_number"] == "CASE-TEST-001"
+    assert data["case_number"] == unique_num
     assert data["case_name"] == "Store Burglary CCTV"
     assert data["status"] == "ACTIVE"
     assert "case_" in data["id"]
@@ -19,8 +23,9 @@ def test_create_case_success(client):
 
 
 def test_create_case_duplicate_number_returns_409(client):
+    unique_num = f"CASE-DUP-{uuid.uuid4().hex[:6]}"
     payload = {
-        "case_number": "CASE-DUP-001",
+        "case_number": unique_num,
         "case_name": "Duplicate Test Case",
         "investigator": "Officer Davis",
     }
@@ -43,8 +48,9 @@ def test_get_case_by_id_and_not_found(client):
     assert not_found_res.status_code == 404
 
     # 2. Create and get valid case
+    unique_num = f"CASE-GET-{uuid.uuid4().hex[:6]}"
     payload = {
-        "case_number": "CASE-GET-002",
+        "case_number": unique_num,
         "case_name": "Retrieval Test",
         "investigator": "Officer Davis",
     }
@@ -61,8 +67,9 @@ def test_get_case_by_id_and_not_found(client):
 
 
 def test_update_case_status(client):
+    unique_num = f"CASE-UPD-{uuid.uuid4().hex[:6]}"
     payload = {
-        "case_number": "CASE-UPDATE-003",
+        "case_number": unique_num,
         "case_name": "Status Update Test",
         "investigator": "Officer Davis",
     }
@@ -79,20 +86,21 @@ def test_update_case_status(client):
 
 
 def test_list_cases_with_search_filter(client):
+    unique_keyword = f"Keyword_{uuid.uuid4().hex[:6]}"
     payload = {
-        "case_number": "CASE-FILTER-999",
-        "case_name": "UniqueFilterKeyword",
+        "case_number": f"CASE-FLT-{uuid.uuid4().hex[:6]}",
+        "case_name": f"Case with {unique_keyword}",
         "investigator": "Special Agent X",
     }
     create_res = client.post("/api/v1/cases/", json=payload)
     case_id = create_res.json()["id"]
 
     # Search with keyword
-    list_res = client.get("/api/v1/cases/?search=UniqueFilterKeyword")
+    list_res = client.get(f"/api/v1/cases/?search={unique_keyword}")
     assert list_res.status_code == 200
     results = list_res.json()
     assert len(results) >= 1
-    assert any(c["case_name"] == "UniqueFilterKeyword" for c in results)
+    assert any(unique_keyword in c["case_name"] for c in results)
 
     # Clean up
     client.delete(f"/api/v1/cases/{case_id}")
