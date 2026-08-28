@@ -13,7 +13,7 @@
 | :--- | :---: | :---: | :---: | :--- |
 | **00. Project Boilerplate & Monorepo** | ✅ Completed | 🔄 In Progress | 🔄 In Progress | Team |
 | **01. Physical Acquisition & Image Ingestion** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Backend / Systems |
-| **02. Device & File System Identification** | ⏳ Next Up | ⏳ Pending | ⏳ Pending | Systems Engineer |
+| **02. Device & File System Identification** | 🔄 In Progress | ⏳ Pending | 🔄 In Progress | Systems Engineer |
 | **03. Sector Header Parsing & Master Map** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Systems / Backend |
 | **04. Video Carving & Stream Remuxing** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Systems Engineer |
 | **05. Multi-Camera Master Timeline Sync** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Frontend / Backend |
