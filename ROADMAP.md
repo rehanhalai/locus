@@ -65,13 +65,15 @@
 **Goal:** Automatically identify DVR file system format, carve raw H.264/H.265 streams, and remux into playable `.mp4`.
 
 - [ ] **Flow 02: Device & File System Identification**
-  - [ ] Implement MBR and GPT partition table parser (512-byte sector scanning).
-  - [ ] Build signature matcher for proprietary magic bytes:
+  - [x] Implement MBR and GPT partition table parser (512-byte sector scanning) in `partition_parser.py`.
+  - [x] Build signature matcher for proprietary magic bytes in `filesystem_prober.py` & `signatures.py`:
     - Dahua / CP Plus (`DHAV`, `DHFS`)
-    - Hikvision (`HKFS`, `HIKVISION`)
-    - Standard / Embedded (`WFS`, FAT32, exFAT, ext4)
-  - [ ] Endpoint: `POST /api/identify/device` with SSE progress stream.
-  - [ ] SQLite model: `DeviceMetadata`, `Partition`.
+    - Hikvision (`HKFS`, `HIKB`, `HIKBTREE`)
+    - Standard / Embedded (`WFS`, FAT32, exFAT, ext4, H.264/H.265 NAL units)
+  - [x] SQLite models: `DeviceMetadata`, `Partition`, and Enums (`PartitionType`, `FileSystemType`, `DVRBrand`).
+  - [ ] Schemas & Service Layer (`schemas.py`, `service.py`).
+  - [ ] Endpoint: `POST /api/v1/identify/device` with SSE progress stream (`router.py`).
+
 - [ ] **Flow 03: File System & Sector Header Parsing**
   - [ ] Unpack 32-byte proprietary frame headers with Python `struct.unpack`.
   - [ ] Build Master Sector Map indexing timestamps, camera channel IDs, and sector ranges.
