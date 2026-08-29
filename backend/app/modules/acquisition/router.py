@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.core import task_manager
 from app.db.session import get_db
 from app.modules.acquisition.schemas import (
     CloneRequest,
@@ -11,7 +12,6 @@ from app.modules.acquisition.schemas import (
     TaskResponse,
 )
 from app.modules.acquisition.service import AcquisitionService
-from app.modules.acquisition.task_manager import task_manager
 
 router = APIRouter(prefix="/acquisition", tags=["Acquisition"])
 
