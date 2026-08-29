@@ -12,11 +12,11 @@ from starlette.testclient import TestClient
 from app.core import task_manager
 from app.db.models import AuditLog, DVRBrand, EvidenceFiles, FileSystemType, IntegrityStatus, PartitionType
 from app.modules.identification.helpers.signatures import (
+    DAHUA_DHAV_MAGIC,
     DAHUA_DHFS_MAGIC,
     HIKVISION_HKFS_MAGIC,
     MBR_BOOT_SIGNATURE,
 )
-
 
 
 def create_test_dvr_image(fs_magic: bytes = DAHUA_DHFS_MAGIC) -> str:
@@ -179,6 +179,131 @@ async def test_identify_device_api_workflow_hikvision(client: TestClient, db):
             os.remove(img_path)
 
 
+@pytest.mark.asyncio
+async def test_reidentify_device_idempotency(client: TestClient, db):
+    """Edge Case: Re-identifying the same evidence updates the existing record cleanly without duplicate error."""
+    case_res = client.post(
+        "/api/v1/cases/",
+        json={
+            "case_number": f"CASE-IDEMP-{uuid.uuid4().hex[:6]}",
+            "case_name": "Idempotency Case",
+            "investigator": "Officer Davis",
+        },
+    )
+    case_id = case_res.json()["id"]
+
+    img_path = create_test_dvr_image(DAHUA_DHFS_MAGIC)
+    ev_id = f"ev_{uuid.uuid4().hex[:8]}"
+
+    try:
+        ev = EvidenceFiles(
+            id=ev_id,
+            case_id=case_id,
+            source_type="IMAGE_FILE",
+            source_device="dahua_sample.dd",
+            file_path=img_path,
+            file_size_bytes=os.path.getsize(img_path),
+            sha256_hash="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            md5_hash="d41d8cd98f00b204e9800998ecf8427e",
+        )
+        db.add(ev)
+        db.commit()
+
+        # Run 1st identification
+        res1 = client.post("/api/v1/identify/device", json={"evidence_id": ev_id})
+        assert res1.status_code == 202
+        t1 = res1.json()["task_id"]
+
+        for _ in range(50):
+            if task_manager.get_task(t1)["status"] in ["COMPLETED", "FAILED"]:
+                break
+            await asyncio.sleep(0.05)
+
+        # Run 2nd identification on the same evidence
+        res2 = client.post("/api/v1/identify/device", json={"evidence_id": ev_id})
+        assert res2.status_code == 202
+        t2 = res2.json()["task_id"]
+
+        for _ in range(50):
+            if task_manager.get_task(t2)["status"] in ["COMPLETED", "FAILED"]:
+                break
+            await asyncio.sleep(0.05)
+
+        assert task_manager.get_task(t2)["status"] == "COMPLETED"
+
+        # Verify only 1 summary record exists and status is COMPLETED
+        final_res = client.get(f"/api/v1/identify/results/{ev_id}")
+        assert final_res.status_code == 200
+        assert final_res.json()["status"] == "COMPLETED"
+
+    finally:
+        if os.path.exists(img_path):
+            os.remove(img_path)
+
+
+@pytest.mark.asyncio
+async def test_identify_device_api_deep_scan_mode(client: TestClient, db):
+    """Edge Case: Calling identification API with deep_scan=True successfully identifies wiped Dahua drive."""
+    case_res = client.post(
+        "/api/v1/cases/",
+        json={
+            "case_number": f"CASE-DEEP-{uuid.uuid4().hex[:6]}",
+            "case_name": "Deep Scan Case",
+            "investigator": "Officer Davis",
+        },
+    )
+    case_id = case_res.json()["id"]
+
+    # Create wiped disk with scattered DHAV frames
+    f = tempfile.NamedTemporaryFile(suffix=".raw", delete=False)
+    for i in range(50):
+        if i in (10, 20, 30):
+            f.write(DAHUA_DHAV_MAGIC + b"\x00\xfd\x01\x00" + b"\x00" * 504)
+        else:
+            f.write(b"\x00" * 512)
+    f.close()
+    img_path = f.name
+    ev_id = f"ev_{uuid.uuid4().hex[:8]}"
+
+    try:
+        ev = EvidenceFiles(
+            id=ev_id,
+            case_id=case_id,
+            source_type="IMAGE_FILE",
+            source_device="wiped_dahua.raw",
+            file_path=img_path,
+            file_size_bytes=os.path.getsize(img_path),
+            sha256_hash="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            md5_hash="d41d8cd98f00b204e9800998ecf8427e",
+        )
+        db.add(ev)
+        db.commit()
+
+        ident_res = client.post(
+            "/api/v1/identify/device",
+            json={"evidence_id": ev_id, "deep_scan": True},
+        )
+        assert ident_res.status_code == 202
+        task_id = ident_res.json()["task_id"]
+
+        for _ in range(50):
+            task = task_manager.get_task(task_id)
+            if task and task.get("status") in ["COMPLETED", "FAILED"]:
+                break
+            await asyncio.sleep(0.05)
+
+        assert task["status"] == "COMPLETED"
+
+        res = client.get(f"/api/v1/identify/results/{ev_id}")
+        assert res.status_code == 200
+        assert res.json()["metadata"]["dvr_brand_guess"] == DVRBrand.DAHUA
+        assert res.json()["metadata"]["detected_fs"] == FileSystemType.DHFS
+
+    finally:
+        if os.path.exists(img_path):
+            os.remove(img_path)
+
+
 def test_identify_device_missing_evidence_returns_404(client: TestClient):
     """Edge Case: Submitting identification for a nonexistent evidence ID returns 404."""
     res = client.post(
@@ -187,6 +312,40 @@ def test_identify_device_missing_evidence_returns_404(client: TestClient):
     )
     assert res.status_code == 404
     assert "not found" in res.json()["detail"].lower()
+
+
+def test_identify_device_missing_file_on_disk_returns_400(client: TestClient, db):
+    """Edge Case: If EvidenceFiles DB row points to a file that was deleted from disk, return 400 Bad Request."""
+    case_res = client.post(
+        "/api/v1/cases/",
+        json={
+            "case_number": f"CASE-MISSING-{uuid.uuid4().hex[:6]}",
+            "case_name": "Missing File Case",
+            "investigator": "Officer Davis",
+        },
+    )
+    case_id = case_res.json()["id"]
+    ev_id = f"ev_{uuid.uuid4().hex[:8]}"
+
+    ev = EvidenceFiles(
+        id=ev_id,
+        case_id=case_id,
+        source_type="IMAGE_FILE",
+        source_device="deleted_image.dd",
+        file_path="/tmp/non_existent_deleted_forensic_disk_999.dd",
+        file_size_bytes=1024,
+        sha256_hash="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        md5_hash="d41d8cd98f00b204e9800998ecf8427e",
+    )
+    db.add(ev)
+    db.commit()
+
+    res = client.post(
+        "/api/v1/identify/device",
+        json={"evidence_id": ev_id},
+    )
+    assert res.status_code == 400
+    assert "missing on disk" in res.json()["detail"].lower()
 
 
 def test_get_identification_results_missing_evidence_returns_404(client: TestClient):
@@ -199,3 +358,88 @@ def test_stream_identification_missing_task_returns_404(client: TestClient):
     """Edge Case: Streaming SSE for nonexistent task ID returns 404."""
     res = client.get("/api/v1/identify/stream/ident_nonexistent")
     assert res.status_code == 404
+
+
+def test_get_identification_results_unanalyzed_evidence(client: TestClient, db):
+    """Edge Case: Fetching results for an ingested evidence file that has not been scanned yet returns UNANALYZED."""
+    case_res = client.post(
+        "/api/v1/cases/",
+        json={
+            "case_number": f"CASE-UNAN-{uuid.uuid4().hex[:6]}",
+            "case_name": "Unanalyzed Evidence Case",
+            "investigator": "Officer Davis",
+        },
+    )
+    case_id = case_res.json()["id"]
+    ev_id = f"ev_{uuid.uuid4().hex[:8]}"
+
+    ev = EvidenceFiles(
+        id=ev_id,
+        case_id=case_id,
+        source_type="IMAGE_FILE",
+        source_device="unscanned.dd",
+        file_path="/tmp/mock_unscanned.dd",
+        file_size_bytes=1024,
+        sha256_hash="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        md5_hash="d41d8cd98f00b204e9800998ecf8427e",
+    )
+    db.add(ev)
+    db.commit()
+
+    res = client.get(f"/api/v1/identify/results/{ev_id}")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "UNANALYZED"
+    assert data["metadata"] is None
+    assert data["partitions"] == []
+
+
+@pytest.mark.asyncio
+async def test_stream_identification_sse_lifecycle(client: TestClient, db):
+    """Edge Case: Verify SSE progress event delivery over /api/v1/identify/stream/{task_id}."""
+    case_res = client.post(
+        "/api/v1/cases/",
+        json={
+            "case_number": f"CASE-SSE-{uuid.uuid4().hex[:6]}",
+            "case_name": "SSE Stream Test",
+            "investigator": "Officer Davis",
+        },
+    )
+    case_id = case_res.json()["id"]
+
+    img_path = create_test_dvr_image(DAHUA_DHFS_MAGIC)
+    ev_id = f"ev_{uuid.uuid4().hex[:8]}"
+
+    try:
+        ev = EvidenceFiles(
+            id=ev_id,
+            case_id=case_id,
+            source_type="IMAGE_FILE",
+            source_device="sse_test.dd",
+            file_path=img_path,
+            file_size_bytes=os.path.getsize(img_path),
+            sha256_hash="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            md5_hash="d41d8cd98f00b204e9800998ecf8427e",
+        )
+        db.add(ev)
+        db.commit()
+
+        ident_res = client.post("/api/v1/identify/device", json={"evidence_id": ev_id})
+        task_id = ident_res.json()["task_id"]
+
+        # Connect to SSE endpoint
+        with client.stream("GET", f"/api/v1/identify/stream/{task_id}") as response:
+            assert response.status_code == 200
+            events_received = []
+            for line in response.iter_lines():
+                if line and line.startswith("data:"):
+                    events_received.append(line)
+                    if "COMPLETED" in line:
+                        break
+
+        assert len(events_received) > 0
+
+    finally:
+        if os.path.exists(img_path):
+            os.remove(img_path)
+

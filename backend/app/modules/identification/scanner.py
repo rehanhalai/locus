@@ -137,10 +137,16 @@ class DeviceScanner:
                     )
                 )
 
-                if conf > max_confidence or (is_prop and primary_brand == DVRBrand.UNKNOWN):
+                # Prioritize proprietary DVR partitions (Dahua, Hikvision, WFS) over standard OS partitions
+                if is_prop and primary_brand in (DVRBrand.UNKNOWN, DVRBrand.STANDARD_STORAGE):
                     max_confidence = conf
                     primary_brand = brand
                     primary_fs = fs
+                elif conf > max_confidence:
+                    max_confidence = conf
+                    primary_brand = brand
+                    primary_fs = fs
+
 
             if progress_callback:
                 progress_callback(100, "Device identification completed.")

@@ -66,12 +66,12 @@ def parse_partition_table(
             f.seek(sector_size)
             lba1 = f.read(sector_size)
             if lba1[0:8] == GPT_HEADER_SIGNATURE:
-                fallback_gpt_partitions = (
-                    mbr_partitions
-                    if mbr_partitions
-                    else [{"start_sector": 2048, "total_sectors": max(0, total_disk_sectors - 2048)}]
-                )
-                return PartitionType.GPT, fallback_gpt_partitions
+                # Filter out the protective 0xEE MBR wrapper
+                gpt_parts = [p for p in mbr_partitions if p.get("type_byte") != GPT_PROTECTIVE_TYPE]
+                if not gpt_parts:
+                    gpt_parts = [{"start_sector": 2048, "total_sectors": max(0, total_disk_sectors - 2048)}]
+                return PartitionType.GPT, gpt_parts
+
 
         if mbr_partitions:
             return PartitionType.MBR, mbr_partitions
