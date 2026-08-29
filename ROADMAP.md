@@ -15,10 +15,10 @@
 | **01. Physical Acquisition & Image Ingestion** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Backend / Systems |
 | **02. Device & File System Identification** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Systems Engineer |
 | **03. Sector Header Parsing & Master Map** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Systems / Backend |
-
-| **04. Video Carving & Stream Remuxing** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Systems Engineer |
+| **04. Video Carving & Stream Remuxing** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Systems Engineer |
 
 | **05. Multi-Camera Master Timeline Sync** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Frontend / Backend |
+
 | **06. Local AI Video Analytics (ONNX)** | ⏳ Pending | ⏳ Pending | ⏳ Pending | AI / CV Engineer |
 | **07. Evidence Search & Event Filtering** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Backend / Frontend |
 | **08. Hash Verification & Evidence Export** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Systems / Backend |
@@ -83,13 +83,15 @@
   - [x] SQLite model: `MasterSectorMap` in `models.py`.
   - [x] Service & REST/SSE Endpoints: `POST /api/v1/headers/parse`, `GET /api/v1/headers/results/{id}`, `GET /api/v1/headers/stream/{task_id}`.
   - [x] Automated test suites: `test_header_parser.py`, `test_header_parser_api.py`.
-- [ ] **Flow 04: Sector Video Carving & Remuxing**
-
-  - [ ] Raw sector reader stripping proprietary wrapper envelopes.
-  - [ ] I-Frame / GOP snap-alignment for H.264/H.265 NAL units.
-  - [ ] Zero-transcode remuxing to `.mp4` using `PyAV` / `FFmpeg`.
-  - [ ] SQLite model: `CarvedClip` (camera_id, start_time, end_time, file_path, sha256).
+- [x] **Flow 04: Sector Video Carving & Remuxing**
+  - [x] Raw sector reader stripping proprietary wrapper envelopes (`demuxer.py`).
+  - [x] I-Frame / GOP snap-alignment for H.264/H.265 NAL units (`demuxer.py`).
+  - [x] Zero-transcode remuxing to `.mp4` using FFmpeg with FastStart (`remuxer.py`, `ffmpeg.py`).
+  - [x] SQLite model: `CarvedClip` (`models.py`).
+  - [x] REST & HTTP 206 Partial Content Video Streaming Endpoints (`router.py`, `service.py`).
+  - [x] Automated test suites: `test_carver.py`, `test_carver_api.py`.
 - [ ] **Frontend Video & Investigation Workspace**
+
   - [ ] Case Intake dashboard & Evidence Registry view.
   - [ ] Synchronized HTML5 video player component with frame stepping.
 

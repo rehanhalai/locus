@@ -21,7 +21,17 @@ __pycache__/
 *.db
 *.sqlite
 *.sqlite3
+data/
+backend/data/
+*.mp4
+*.h264
+*.h265
 !shared/samples/.gitkeep
+
+# Large Third-Party Binaries (>100MB)
+backend/bin/windows/ffmpeg.exe
+
+
 
 # OS / IDE
 .DS_Store

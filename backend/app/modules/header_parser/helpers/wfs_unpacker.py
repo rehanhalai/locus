@@ -42,6 +42,7 @@ class WFSHeaderUnpacker:
                 timestamp = datetime.fromtimestamp(raw_ts, tz=UTC)
             except ValueError, OverflowError:
                 timestamp = datetime.now(UTC)
+
         else:
             timestamp = datetime.now(UTC)
 
