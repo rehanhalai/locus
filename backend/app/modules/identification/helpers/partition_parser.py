@@ -69,9 +69,10 @@ def parse_partition_table(
                 # Filter out the protective 0xEE MBR wrapper
                 gpt_parts = [p for p in mbr_partitions if p.get("type_byte") != GPT_PROTECTIVE_TYPE]
                 if not gpt_parts:
-                    gpt_parts = [{"start_sector": 2048, "total_sectors": max(0, total_disk_sectors - 2048)}]
+                    gpt_parts = [
+                        {"start_sector": 2048, "total_sectors": max(0, total_disk_sectors - 2048)}
+                    ]
                 return PartitionType.GPT, gpt_parts
-
 
         if mbr_partitions:
             return PartitionType.MBR, mbr_partitions

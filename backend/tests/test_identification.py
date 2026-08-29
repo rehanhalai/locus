@@ -162,9 +162,13 @@ def test_scanner_mbr_with_multiple_partitions():
     with tempfile.NamedTemporaryFile(suffix=".dd", delete=False) as f:
         mbr = bytearray(512)
         # Entry 1: Sector 2048, 2048 sectors (FAT32)
-        mbr[446:462] = struct.pack("<B3sB3sII", 0x80, b"\x00\x02\x00", 0x0C, b"\x00\x02\x00", 2048, 2048)
+        mbr[446:462] = struct.pack(
+            "<B3sB3sII", 0x80, b"\x00\x02\x00", 0x0C, b"\x00\x02\x00", 2048, 2048
+        )
         # Entry 2: Sector 4096, 4096 sectors (DHFS)
-        mbr[462:478] = struct.pack("<B3sB3sII", 0x00, b"\x00\x02\x00", 0x83, b"\x00\x02\x00", 4096, 4096)
+        mbr[462:478] = struct.pack(
+            "<B3sB3sII", 0x00, b"\x00\x02\x00", 0x83, b"\x00\x02\x00", 4096, 4096
+        )
         mbr[510:512] = MBR_BOOT_SIGNATURE
         f.write(mbr)
 
@@ -199,7 +203,9 @@ def test_scanner_gpt_partition_table():
     with tempfile.NamedTemporaryFile(suffix=".dd", delete=False) as f:
         # LBA 0: Protective MBR with 0xEE type byte at offset 450
         mbr = bytearray(512)
-        mbr[446:462] = struct.pack("<B3sB3sII", 0x00, b"\x00\x02\x00", GPT_PROTECTIVE_TYPE, b"\x00\x02\x00", 1, 10000)
+        mbr[446:462] = struct.pack(
+            "<B3sB3sII", 0x00, b"\x00\x02\x00", GPT_PROTECTIVE_TYPE, b"\x00\x02\x00", 1, 10000
+        )
         mbr[510:512] = MBR_BOOT_SIGNATURE
         f.write(mbr)
 
@@ -447,7 +453,7 @@ def test_scanner_blank_zero_filled_drive():
 def test_scanner_random_binary_garbage():
     """Edge Case: Scanning completely non-video random noise bytes safely returns UNKNOWN."""
     with tempfile.NamedTemporaryFile(suffix=".raw", delete=False) as f:
-        f.write(b"\x99\xAA\xBB\xCC\xDD\xEE\xFF\x11" * 1000)
+        f.write(b"\x99\xaa\xbb\xcc\xdd\xee\xff\x11" * 1000)
         file_path = f.name
 
     try:
@@ -509,7 +515,9 @@ def test_scanner_dahua_dav_with_multiple_frames():
     """Edge Case: Verify Dahua standalone clip containing multiple sequential DHAV frames."""
     with tempfile.NamedTemporaryFile(suffix=".dav", delete=False) as f:
         for _ in range(5):
-            f.write(DAHUA_DHAV_MAGIC + b"\x00\xfd\x01\x00\x00\x04\x00\x00" + b"\x00" * 500 + b"dhav")
+            f.write(
+                DAHUA_DHAV_MAGIC + b"\x00\xfd\x01\x00\x00\x04\x00\x00" + b"\x00" * 500 + b"dhav"
+            )
         file_path = f.name
 
     try:
@@ -520,4 +528,3 @@ def test_scanner_dahua_dav_with_multiple_frames():
         assert res.detected_fs == FileSystemType.DHFS
     finally:
         os.remove(file_path)
-

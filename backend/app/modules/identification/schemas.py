@@ -37,7 +37,8 @@ class DeviceMetadataResponse(BaseModel):
 class DeviceIdentifyRequest(BaseModel):
     evidence_id: str = Field(..., description="Target Evidence ID (e.g. ev_a3f5b8c9)")
     deep_scan: bool = Field(
-        False, description="Enable deep sector sampling if partition superblock is missing or damaged"
+        False,
+        description="Enable deep sector sampling if partition superblock is missing or damaged",
     )
     investigator: str | None = Field(
         "Forensic Officer", description="Investigator performing the device identification"

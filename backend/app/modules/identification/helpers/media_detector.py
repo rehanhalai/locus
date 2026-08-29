@@ -11,9 +11,7 @@ from app.modules.identification.helpers.signatures import (
 )
 
 
-def detect_standalone_media(
-    f: BinaryIO, file_size: int, sector_size: int = 512
-) -> dict | None:
+def detect_standalone_media(f: BinaryIO, file_size: int, sector_size: int = 512) -> dict | None:
     """Inspects the first 32 bytes of a file to check if it is a single exported video clip.
 
     Returns a dict with detection details if recognized, or None if it appears to be a disk image.

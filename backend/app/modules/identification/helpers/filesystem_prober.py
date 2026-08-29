@@ -127,7 +127,12 @@ def sample_sectors_deep(
 
     if nal_hits >= 2:
         confidence = min(0.85, 0.40 + (nal_hits / 10.0))
-        return FileSystemType.RAW_STREAM, DVRBrand.UNKNOWN, True, "00 00 00 01", round(confidence, 2)
+        return (
+            FileSystemType.RAW_STREAM,
+            DVRBrand.UNKNOWN,
+            True,
+            "00 00 00 01",
+            round(confidence, 2),
+        )
 
     return FileSystemType.UNKNOWN, DVRBrand.UNKNOWN, False, None, 0.0
-

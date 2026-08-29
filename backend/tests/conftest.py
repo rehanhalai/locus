@@ -40,7 +40,6 @@ def setup_test_db():
     ident_service.SessionLocal = TestingSessionLocal
     app.dependency_overrides[get_db] = override_get_db
 
-
     yield
 
     Base.metadata.drop_all(bind=test_engine)

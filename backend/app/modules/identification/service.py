@@ -14,7 +14,6 @@ from app.db.models import AuditLog, DeviceMetadata, EvidenceFiles, IntegrityStat
 from app.modules.identification.scanner import DeviceScanner
 
 
-
 class IdentificationService:
     @classmethod
     def start_identification(
@@ -30,7 +29,9 @@ class IdentificationService:
             raise KeyError(f"Evidence file with ID '{evidence_id}' not found.")
 
         if not os.path.exists(evidence.file_path):
-            raise FileNotFoundError(f"Underlying evidence image missing on disk: {evidence.file_path}")
+            raise FileNotFoundError(
+                f"Underlying evidence image missing on disk: {evidence.file_path}"
+            )
 
         task_id = f"ident_{uuid.uuid4().hex[:8]}"
         task_manager.create_task(
@@ -71,7 +72,6 @@ class IdentificationService:
         db: Session = db_session.SessionLocal()
         loop = asyncio.get_running_loop()
 
-
         try:
             await task_manager.broadcast(
                 task_id,
@@ -107,7 +107,9 @@ class IdentificationService:
             )
 
             # Persist or update DeviceMetadata summary
-            meta = db.query(DeviceMetadata).filter(DeviceMetadata.evidence_id == evidence_id).first()
+            meta = (
+                db.query(DeviceMetadata).filter(DeviceMetadata.evidence_id == evidence_id).first()
+            )
             if not meta:
                 meta = DeviceMetadata(evidence_id=evidence_id)
                 db.add(meta)

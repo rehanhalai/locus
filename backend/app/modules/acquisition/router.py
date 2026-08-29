@@ -13,7 +13,6 @@ from app.modules.acquisition.schemas import (
 )
 from app.modules.acquisition.service import AcquisitionService
 
-
 router = APIRouter(prefix="/acquisition", tags=["Acquisition"])
 
 

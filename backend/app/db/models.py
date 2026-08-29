@@ -1,7 +1,17 @@
 from datetime import UTC, datetime
 from enum import StrEnum
 
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import relationship
 
@@ -109,9 +119,7 @@ class EvidenceFiles(Base):
     device_metadata = relationship(
         "DeviceMetadata", back_populates="evidence", uselist=False, cascade="all, delete-orphan"
     )
-    partitions = relationship(
-        "Partition", back_populates="evidence", cascade="all, delete-orphan"
-    )
+    partitions = relationship("Partition", back_populates="evidence", cascade="all, delete-orphan")
 
 
 class DeviceMetadata(Base):
@@ -155,5 +163,3 @@ class Partition(Base):
     magic_bytes_found = Column(String(64), nullable=True)
 
     evidence = relationship("EvidenceFiles", back_populates="partitions")
-
-

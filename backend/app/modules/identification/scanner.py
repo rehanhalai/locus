@@ -1,8 +1,8 @@
 """High-level DeviceScanner orchestrator coordinating standalone media detection, partition parsing, and filesystem probing."""
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from app.db.models import DVRBrand, FileSystemType, PartitionType
 from app.modules.identification.helpers import (
@@ -80,7 +80,8 @@ class DeviceScanner:
                             total_sectors=media_match["total_sectors"],
                             size_bytes=file_size,
                             file_system=media_match["detected_fs"],
-                            is_proprietary=media_match["dvr_brand_guess"] != DVRBrand.STANDARD_STORAGE,
+                            is_proprietary=media_match["dvr_brand_guess"]
+                            != DVRBrand.STANDARD_STORAGE,
                             magic_bytes_found=media_match["magic_bytes_found"],
                         )
                     ],
@@ -112,7 +113,9 @@ class DeviceScanner:
                 fs, brand, is_prop, magic, conf = probe_superblock(f, start_sec, self.sector_size)
 
                 # Fallback deep sector sampling if superblock was unrecognized
-                if fs == FileSystemType.UNKNOWN and (deep_scan or partition_type == PartitionType.RAW):
+                if fs == FileSystemType.UNKNOWN and (
+                    deep_scan or partition_type == PartitionType.RAW
+                ):
                     if progress_callback:
                         progress_callback(
                             60 + int(30 * (idx / len(raw_partitions))),
@@ -146,7 +149,6 @@ class DeviceScanner:
                     max_confidence = conf
                     primary_brand = brand
                     primary_fs = fs
-
 
             if progress_callback:
                 progress_callback(100, "Device identification completed.")

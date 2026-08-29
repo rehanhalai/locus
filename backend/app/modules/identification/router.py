@@ -11,15 +11,12 @@ from app.modules.identification.schemas import (
     DeviceIdentifyResponse,
     IdentificationResultResponse,
 )
-
 from app.modules.identification.service import IdentificationService
 
 router = APIRouter(prefix="/identify", tags=["Identification"])
 
 
-@router.post(
-    "/device", response_model=DeviceIdentifyResponse, status_code=status.HTTP_202_ACCEPTED
-)
+@router.post("/device", response_model=DeviceIdentifyResponse, status_code=status.HTTP_202_ACCEPTED)
 async def identify_device(payload: DeviceIdentifyRequest, db: Session = Depends(get_db)):
     """Triggers non-blocking asynchronous device identification, partition parsing, and filesystem probing."""
     try:

@@ -10,7 +10,14 @@ import pytest
 from starlette.testclient import TestClient
 
 from app.core import task_manager
-from app.db.models import AuditLog, DVRBrand, EvidenceFiles, FileSystemType, IntegrityStatus, PartitionType
+from app.db.models import (
+    AuditLog,
+    DVRBrand,
+    EvidenceFiles,
+    FileSystemType,
+    IntegrityStatus,
+    PartitionType,
+)
 from app.modules.identification.helpers.signatures import (
     DAHUA_DHAV_MAGIC,
     DAHUA_DHFS_MAGIC,
@@ -442,4 +449,3 @@ async def test_stream_identification_sse_lifecycle(client: TestClient, db):
     finally:
         if os.path.exists(img_path):
             os.remove(img_path)
-
