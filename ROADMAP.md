@@ -14,9 +14,10 @@
 | **00. Project Boilerplate & Monorepo** | ✅ Completed | 🔄 In Progress | 🔄 In Progress | Team |
 | **01. Physical Acquisition & Image Ingestion** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Backend / Systems |
 | **02. Device & File System Identification** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Systems Engineer |
-| **03. Sector Header Parsing & Master Map** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Systems / Backend |
+| **03. Sector Header Parsing & Master Map** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Systems / Backend |
 
 | **04. Video Carving & Stream Remuxing** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Systems Engineer |
+
 | **05. Multi-Camera Master Timeline Sync** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Frontend / Backend |
 | **06. Local AI Video Analytics (ONNX)** | ⏳ Pending | ⏳ Pending | ⏳ Pending | AI / CV Engineer |
 | **07. Evidence Search & Event Filtering** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Backend / Frontend |
@@ -76,11 +77,14 @@
   - [x] Endpoints: `POST /api/v1/identify/device`, `GET /api/v1/identify/results/{id}`, `GET /api/v1/identify/stream/{id}` ([router.py](file:///home/rehanhalai/code/locus/backend/app/modules/identification/router.py)).
   - [x] Automated test suite ([test_identification.py](file:///home/rehanhalai/code/locus/backend/tests/test_identification.py), [test_identification_api.py](file:///home/rehanhalai/code/locus/backend/tests/test_identification_api.py)).
 
-- [ ] **Flow 03: File System & Sector Header Parsing**
-  - [ ] Unpack 32-byte proprietary frame headers with Python `struct.unpack`.
-  - [ ] Build Master Sector Map indexing timestamps, camera channel IDs, and sector ranges.
-  - [ ] SQLite model: `StreamHeader` / `MasterSectorMap`.
+- [x] **Flow 03: File System & Sector Header Parsing**
+  - [x] Unpack 32-byte proprietary frame headers with Python `struct.unpack` (`dahua_unpacker.py`, `hikvision_unpacker.py`, `wfs_unpacker.py`, `raw_stream_unpacker.py`).
+  - [x] Build Master Sector Map indexing timestamps, camera channel IDs, keyframes, and sector ranges (`indexer.py`).
+  - [x] SQLite model: `MasterSectorMap` in `models.py`.
+  - [x] Service & REST/SSE Endpoints: `POST /api/v1/headers/parse`, `GET /api/v1/headers/results/{id}`, `GET /api/v1/headers/stream/{task_id}`.
+  - [x] Automated test suites: `test_header_parser.py`, `test_header_parser_api.py`.
 - [ ] **Flow 04: Sector Video Carving & Remuxing**
+
   - [ ] Raw sector reader stripping proprietary wrapper envelopes.
   - [ ] I-Frame / GOP snap-alignment for H.264/H.265 NAL units.
   - [ ] Zero-transcode remuxing to `.mp4` using `PyAV` / `FFmpeg`.

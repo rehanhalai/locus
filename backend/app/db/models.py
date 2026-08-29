@@ -51,8 +51,16 @@ class DVRBrand(StrEnum):
     WFS_GENERIC = "WFS / Generic DVR"
     UNIVIEW = "Uniview"
     HONEYWELL = "Honeywell"
-    TP_LINK = "TP-Link"
+    TP_LINK = "TP-Link / Tapo"
     STANDARD_STORAGE = "Standard Storage"
+    UNKNOWN = "UNKNOWN"
+
+
+class VideoCodec(StrEnum):
+    H264 = "H264"
+    H265 = "H265"
+    MPEG4 = "MPEG4"
+    MJPEG = "MJPEG"
     UNKNOWN = "UNKNOWN"
 
 
@@ -120,6 +128,9 @@ class EvidenceFiles(Base):
         "DeviceMetadata", back_populates="evidence", uselist=False, cascade="all, delete-orphan"
     )
     partitions = relationship("Partition", back_populates="evidence", cascade="all, delete-orphan")
+    master_sector_maps = relationship(
+        "MasterSectorMap", back_populates="evidence", cascade="all, delete-orphan"
+    )
 
 
 class DeviceMetadata(Base):
@@ -163,3 +174,25 @@ class Partition(Base):
     magic_bytes_found = Column(String(64), nullable=True)
 
     evidence = relationship("EvidenceFiles", back_populates="partitions")
+
+
+class MasterSectorMap(Base):
+    __tablename__ = "master_sector_map"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    evidence_id = Column(String(64), ForeignKey("evidence_files.id"), index=True, nullable=False)
+    camera_id = Column(Integer, index=True, nullable=False)  # Camera 1, 2, 3, 4, ...
+    start_sector = Column(BigInteger, index=True, nullable=False)
+    end_sector = Column(BigInteger, index=True, nullable=False)
+    start_time = Column(DateTime, index=True, nullable=False)
+    end_time = Column(DateTime, index=True, nullable=False)
+    frame_count = Column(Integer, default=0, nullable=False)
+    keyframe_count = Column(Integer, default=0, nullable=False)
+    stream_format = Column(
+        SAEnum(VideoCodec), default=VideoCodec.H264, nullable=False
+    )  # "H264", "H265", "MPEG4", "MJPEG", "UNKNOWN"
+    size_bytes = Column(BigInteger, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+
+    evidence = relationship("EvidenceFiles", back_populates="master_sector_maps")
