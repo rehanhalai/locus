@@ -51,8 +51,16 @@ class DVRBrand(StrEnum):
     WFS_GENERIC = "WFS / Generic DVR"
     UNIVIEW = "Uniview"
     HONEYWELL = "Honeywell"
-    TP_LINK = "TP-Link"
+    TP_LINK = "TP-Link / Tapo"
     STANDARD_STORAGE = "Standard Storage"
+    UNKNOWN = "UNKNOWN"
+
+
+class VideoCodec(StrEnum):
+    H264 = "H264"
+    H265 = "H265"
+    MPEG4 = "MPEG4"
+    MJPEG = "MJPEG"
     UNKNOWN = "UNKNOWN"
 
 
@@ -125,7 +133,6 @@ class EvidenceFiles(Base):
     )
 
 
-
 class DeviceMetadata(Base):
     __tablename__ = "device_metadata"
 
@@ -181,9 +188,11 @@ class MasterSectorMap(Base):
     end_time = Column(DateTime, index=True, nullable=False)
     frame_count = Column(Integer, default=0, nullable=False)
     keyframe_count = Column(Integer, default=0, nullable=False)
-    stream_format = Column(String(32), default="H264", nullable=False)  # "H264", "H265", "MPEG4"
+    stream_format = Column(
+        SAEnum(VideoCodec), default=VideoCodec.H264, nullable=False
+    )  # "H264", "H265", "MPEG4", "MJPEG", "UNKNOWN"
     size_bytes = Column(BigInteger, nullable=False)
+
     created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
 
     evidence = relationship("EvidenceFiles", back_populates="master_sector_maps")
-

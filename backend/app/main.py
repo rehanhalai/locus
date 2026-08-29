@@ -5,6 +5,7 @@ import app.db.models
 from app.db.session import Base, engine
 from app.modules.acquisition.router import router as acquisition_router
 from app.modules.cases.router import router as cases_router
+from app.modules.header_parser.router import router as headers_router
 from app.modules.identification.router import router as identify_router
 
 # Ensure SQLite tables exist
@@ -27,6 +28,7 @@ app.add_middleware(
 app.include_router(cases_router, prefix="/api/v1")
 app.include_router(acquisition_router, prefix="/api/v1")
 app.include_router(identify_router, prefix="/api/v1")
+app.include_router(headers_router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["System"])

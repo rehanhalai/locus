@@ -9,6 +9,7 @@ from app.db import session as db_session
 from app.db.session import Base, get_db
 from app.main import app
 from app.modules.acquisition import service as acq_service
+from app.modules.header_parser import service as hdr_service
 from app.modules.identification import service as ident_service
 
 test_engine = create_engine(
@@ -38,6 +39,7 @@ def setup_test_db():
     db_session.SessionLocal = TestingSessionLocal
     acq_service.SessionLocal = TestingSessionLocal
     ident_service.SessionLocal = TestingSessionLocal
+    hdr_service.SessionLocal = TestingSessionLocal
     app.dependency_overrides[get_db] = override_get_db
 
     yield
