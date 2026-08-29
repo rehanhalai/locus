@@ -1,3 +1,5 @@
+"""Application-wide background task manager for SSE event broadcasting and task status tracking."""
+
 import asyncio
 import json
 from collections.abc import AsyncGenerator
@@ -42,7 +44,7 @@ class TaskManager:
             for t in self._tasks.values()
         ]
 
-    async def broadcast(self, task_id: str, event: dict[str, Any]):
+    async def broadcast(self, task_id: str, event: dict[str, Any]) -> None:
         task = self._tasks.get(task_id)
         if not task:
             return

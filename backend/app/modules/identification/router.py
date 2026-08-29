@@ -4,13 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.core import task_manager
 from app.db.session import get_db
-from app.modules.acquisition.task_manager import task_manager
 from app.modules.identification.schemas import (
     DeviceIdentifyRequest,
     DeviceIdentifyResponse,
     IdentificationResultResponse,
 )
+
 from app.modules.identification.service import IdentificationService
 
 router = APIRouter(prefix="/identify", tags=["Identification"])

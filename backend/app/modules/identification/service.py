@@ -8,11 +8,11 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.core import task_manager
 from app.db import session as db_session
 from app.db.models import AuditLog, DeviceMetadata, EvidenceFiles, IntegrityStatus, Partition
-from app.db.session import SessionLocal
-from app.modules.acquisition.task_manager import task_manager
 from app.modules.identification.scanner import DeviceScanner
+
 
 
 class IdentificationService:

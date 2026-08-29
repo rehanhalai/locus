@@ -9,13 +9,14 @@ import uuid
 import pytest
 from starlette.testclient import TestClient
 
+from app.core import task_manager
 from app.db.models import AuditLog, DVRBrand, EvidenceFiles, FileSystemType, IntegrityStatus, PartitionType
-from app.modules.acquisition.task_manager import task_manager
 from app.modules.identification.helpers.signatures import (
     DAHUA_DHFS_MAGIC,
     HIKVISION_HKFS_MAGIC,
     MBR_BOOT_SIGNATURE,
 )
+
 
 
 def create_test_dvr_image(fs_magic: bytes = DAHUA_DHFS_MAGIC) -> str:

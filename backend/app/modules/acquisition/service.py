@@ -5,13 +5,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app.core import task_manager
 from sqlalchemy.orm import Session
 
 from app.db.models import AuditLog, Case, EvidenceFiles, IntegrityStatus
 from app.db.session import SessionLocal
 from app.modules.acquisition.dc3dd import run_dc3dd
 from app.modules.acquisition.hasher import stream_file_hashes
-from app.modules.acquisition.task_manager import task_manager
 
 
 class AcquisitionService:
