@@ -40,7 +40,7 @@ class WFSHeaderUnpacker:
         if 946684800 <= raw_ts <= 2524608000:
             try:
                 timestamp = datetime.fromtimestamp(raw_ts, tz=UTC)
-            except (ValueError, OverflowError):
+            except ValueError, OverflowError:
                 timestamp = datetime.now(UTC)
 
         else:

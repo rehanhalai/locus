@@ -131,6 +131,9 @@ class EvidenceFiles(Base):
     master_sector_maps = relationship(
         "MasterSectorMap", back_populates="evidence", cascade="all, delete-orphan"
     )
+    carved_clips = relationship(
+        "CarvedClip", back_populates="evidence", cascade="all, delete-orphan"
+    )
 
 
 class DeviceMetadata(Base):
@@ -196,3 +199,26 @@ class MasterSectorMap(Base):
     created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
 
     evidence = relationship("EvidenceFiles", back_populates="master_sector_maps")
+
+
+class CarvedClip(Base):
+    __tablename__ = "carved_clips"
+
+    id = Column(String(64), primary_key=True, index=True)  # e.g. "clip_a8f3b2c1"
+    evidence_id = Column(String(64), ForeignKey("evidence_files.id"), index=True, nullable=False)
+    camera_id = Column(Integer, index=True, nullable=False)  # Camera 1, 2, 3, 4, ...
+    start_time = Column(DateTime, index=True, nullable=False)
+    end_time = Column(DateTime, index=True, nullable=False)
+    start_sector = Column(BigInteger, nullable=False)
+    end_sector = Column(BigInteger, nullable=False)
+    codec = Column(
+        SAEnum(VideoCodec), default=VideoCodec.H264, nullable=False
+    )  # "H264", "H265", "MPEG4"
+    file_path = Column(Text, nullable=False)  # Absolute path to carved .mp4 file
+    file_size_bytes = Column(BigInteger, nullable=False)
+    sha256_hash = Column(String(64), nullable=False)  # Forensic proof
+    md5_hash = Column(String(32), nullable=False)
+    frame_count = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+
+    evidence = relationship("EvidenceFiles", back_populates="carved_clips")
