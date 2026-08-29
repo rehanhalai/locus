@@ -45,6 +45,8 @@ class HikvisionHeaderUnpacker:
         else:
             stream_format = VideoCodec.H264  # Default fallback
 
+
+
         # Bytes 8-11: Payload length in bytes (uint32 LE)
         payload_length = struct.unpack("<I", chunk[8:12])[0]
 
@@ -53,7 +55,7 @@ class HikvisionHeaderUnpacker:
         if 946684800 <= raw_ts <= 2524608000:
             try:
                 timestamp = datetime.fromtimestamp(raw_ts, tz=UTC)
-            except ValueError, OverflowError:
+            except (ValueError, OverflowError):
                 timestamp = datetime.now(UTC)
         else:
             timestamp = datetime.now(UTC)
