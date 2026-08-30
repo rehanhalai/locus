@@ -10,8 +10,8 @@ def get_ffmpeg_path() -> str:
     """Resolves the executable path to FFmpeg across platforms.
 
     Priority:
-    1. Local platform binary: backend/bin/linux/ffmpeg or backend/bin/windows/ffmpeg.exe
-    2. System environment $PATH (/usr/bin/ffmpeg)
+    1. Local standalone bundled binary: backend/bin/linux/ffmpeg or backend/bin/windows/ffmpeg.exe (Zero external dependencies)
+    2. System environment $PATH (/usr/bin/ffmpeg or ffmpeg.exe)
     """
     base_dir = Path(__file__).resolve().parents[3]
     current_os = platform.system().lower()
@@ -21,15 +21,17 @@ def get_ffmpeg_path() -> str:
     else:
         binary_path = base_dir / "bin" / "linux" / "ffmpeg"
 
+    # 1. Local bundled standalone binary
     if binary_path.exists() and os.access(binary_path, os.X_OK):
         return str(binary_path)
 
-    system_bin = shutil.which("ffmpeg")
+    # 2. System environment $PATH fallback
+    system_bin = shutil.which("ffmpeg.exe" if current_os == "windows" else "ffmpeg")
     if system_bin:
         return system_bin
 
     raise FileNotFoundError(
-        f"FFmpeg executable not found on system PATH or local bin. Checked: {binary_path}"
+        f"FFmpeg executable not found in bundled bin or system PATH. Checked: {binary_path}"
     )
 
 

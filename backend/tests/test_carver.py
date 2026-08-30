@@ -22,23 +22,36 @@ def generate_synthetic_h264_payload() -> bytes:
 
     try:
         ffmpeg_bin = get_ffmpeg_path()
-        cmd = [
-            ffmpeg_bin,
-            "-y",
-            "-f",
-            "lavfi",
-            "-i",
-            "testsrc=duration=1:size=160x120:rate=25",
-            "-c:v",
-            "libopenh264",
-            "-an",
-            "-f",
-            "h264",
-            out_path,
-        ]
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        encoders = ["libx264", "libopenh264"]
+        success = False
+        for enc in encoders:
+            cmd = [
+                ffmpeg_bin,
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                "testsrc=duration=1:size=160x120:rate=25",
+                "-c:v",
+                enc,
+                "-an",
+                "-f",
+                "h264",
+                out_path,
+            ]
+            res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if res.returncode == 0:
+                success = True
+                break
+
+        if not success:
+            raise RuntimeError(
+                f"Failed to generate synthetic H.264 stream with tested encoders: {encoders}"
+            )
+
         with open(out_path, "rb") as f:
             return f.read()
+
     finally:
         if os.path.exists(out_path):
             os.remove(out_path)
