@@ -134,6 +134,9 @@ class EvidenceFiles(Base):
     carved_clips = relationship(
         "CarvedClip", back_populates="evidence", cascade="all, delete-orphan"
     )
+    timeline_calibrations = relationship(
+        "TimelineCalibration", back_populates="evidence", cascade="all, delete-orphan"
+    )
 
 
 class DeviceMetadata(Base):
@@ -222,3 +225,19 @@ class CarvedClip(Base):
     created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
 
     evidence = relationship("EvidenceFiles", back_populates="carved_clips")
+
+
+class TimelineCalibration(Base):
+    __tablename__ = "timeline_calibrations"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    evidence_id = Column(String(64), ForeignKey("evidence_files.id"), index=True, nullable=False)
+    camera_id = Column(Integer, index=True, nullable=False)
+    offset_seconds = Column(Float, default=0.0, nullable=False)  # e.g., +240.0 or -15.5
+    reason = Column(String(255), nullable=True)  # e.g., "Calibrated with atomic reference clock"
+    calibrated_by = Column(String(128), default="Forensic Officer", nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC), nullable=False
+    )
+
+    evidence = relationship("EvidenceFiles", back_populates="timeline_calibrations")
