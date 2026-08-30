@@ -129,6 +129,7 @@ class Case(Base):
     evidence_files = relationship(
         "EvidenceFiles", back_populates="case", cascade="all, delete-orphan"
     )
+    exports = relationship("EvidenceExport", back_populates="case", cascade="all, delete-orphan")
 
 
 class IntegrityStatus(StrEnum):
@@ -184,6 +185,9 @@ class EvidenceFiles(Base):
     )
     timeline_events = relationship(
         "TimelineEvent", back_populates="evidence", cascade="all, delete-orphan"
+    )
+    exports = relationship(
+        "EvidenceExport", back_populates="evidence", cascade="all, delete-orphan"
     )
 
 
@@ -276,6 +280,7 @@ class CarvedClip(Base):
     timeline_events = relationship(
         "TimelineEvent", back_populates="clip", cascade="all, delete-orphan"
     )
+    exports = relationship("EvidenceExport", back_populates="clip")
 
 
 class TimelineCalibration(Base):
@@ -315,3 +320,35 @@ class TimelineEvent(Base):
 
     evidence = relationship("EvidenceFiles", back_populates="timeline_events")
     clip = relationship("CarvedClip", back_populates="timeline_events")
+
+
+class EvidenceExport(Base):
+    __tablename__ = "evidence_exports"
+
+    id = Column(String(64), primary_key=True, index=True)  # e.g. "exp_a1b2c3d4e5f6"
+    evidence_id = Column(String(64), ForeignKey("evidence_files.id"), index=True, nullable=False)
+    clip_id = Column(String(64), ForeignKey("carved_clips.id"), index=True, nullable=True)
+    case_id = Column(String(64), ForeignKey("cases.id"), index=True, nullable=False)
+    camera_id = Column(Integer, index=True, nullable=False)
+
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=False)
+    start_sector = Column(BigInteger, default=0, nullable=False)
+    end_sector = Column(BigInteger, default=0, nullable=False)
+
+    exported_filename = Column(String(255), nullable=False)
+    exported_file_path = Column(String(512), nullable=False)
+    exported_file_size_bytes = Column(BigInteger, default=0, nullable=False)
+
+    sha256_hash = Column(String(64), index=True, nullable=False)  # For reverse-hash lookup
+    md5_hash = Column(String(32), nullable=False)
+
+    manifest_json = Column(Text, nullable=False)
+    manifest_signature = Column(String(64), nullable=False)
+
+    exported_by = Column(String(128), default="Forensic Officer", nullable=False)
+    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+
+    evidence = relationship("EvidenceFiles", back_populates="exports")
+    clip = relationship("CarvedClip", back_populates="exports")
+    case = relationship("Case", back_populates="exports")
