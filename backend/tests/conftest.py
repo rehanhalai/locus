@@ -9,6 +9,7 @@ from app.db import session as db_session
 from app.db.session import Base, get_db
 from app.main import app
 from app.modules.acquisition import service as acq_service
+from app.modules.analytics import service as analytics_service
 from app.modules.carver import service as carver_service
 from app.modules.header_parser import service as hdr_service
 from app.modules.identification import service as ident_service
@@ -42,6 +43,7 @@ def setup_test_db():
     ident_service.SessionLocal = TestingSessionLocal
     hdr_service.SessionLocal = TestingSessionLocal
     carver_service.db_session.SessionLocal = TestingSessionLocal
+    analytics_service.db_session.SessionLocal = TestingSessionLocal
     app.dependency_overrides[get_db] = override_get_db
 
     yield

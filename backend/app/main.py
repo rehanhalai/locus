@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import app.db.models
 from app.db.session import Base, engine
 from app.modules.acquisition.router import router as acquisition_router
+from app.modules.analytics.router import router as analytics_router
 from app.modules.carver.router import router as carver_router
 from app.modules.cases.router import router as cases_router
 from app.modules.header_parser.router import router as headers_router
@@ -33,6 +34,7 @@ app.include_router(identify_router, prefix="/api/v1")
 app.include_router(headers_router, prefix="/api/v1")
 app.include_router(carver_router, prefix="/api/v1")
 app.include_router(timeline_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["System"])
