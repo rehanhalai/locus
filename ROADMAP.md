@@ -16,10 +16,10 @@
 | **02. Device & File System Identification** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Systems Engineer |
 | **03. Sector Header Parsing & Master Map** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Systems / Backend |
 | **04. Video Carving & Stream Remuxing** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Systems Engineer |
-
-| **05. Multi-Camera Master Timeline Sync** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Frontend / Backend |
+| **05. Multi-Camera Master Timeline Sync** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Frontend / Backend |
 
 | **06. Local AI Video Analytics (ONNX)** | ⏳ Pending | ⏳ Pending | ⏳ Pending | AI / CV Engineer |
+
 | **07. Evidence Search & Event Filtering** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Backend / Frontend |
 | **08. Hash Verification & Evidence Export** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Systems / Backend |
 | **09. Forensic PDF Reporting & Audit Trail** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Full-Stack |
@@ -100,11 +100,14 @@
 ### ⏱️ Phase 3: Timeline Synchronization, AI Analytics & Reporting *(Sept 7 – Sept 11)*
 **Goal:** Synchronize multi-camera feeds, run local motion-gated YOLOv8 analytics, and generate forensic reports.
 
-- [ ] **Flow 05: Multi-Camera Timeline Synchronization**
-  - [ ] Non-destructive offset calibration layer (`timeline_calibrations` table).
-  - [ ] 60 Hz master clock synchronization for multi-camera grid playback.
+- [x] **Flow 05: Multi-Camera Timeline Synchronization**
+  - [x] Non-destructive offset calibration layer (`timeline_calibrations` table in `models.py`).
+  - [x] Multi-track synchronized master timeline engine with time-bound calculation (`service.py`).
+  - [x] Multi-camera grid frame sync resolver for HTML5 video player seek offsets (`router.py`, `service.py`).
+  - [x] Automated test suites: `test_timeline.py`, `test_timeline_api.py`.
   - [ ] React multi-track timeline visualization component.
 - [ ] **Flow 06: Local AI Video Analytics (ONNX Runtime)**
+
   - [ ] OpenCV MOG2 background subtractor to detect motion voids and skip inactive frames.
   - [ ] ONNX Runtime YOLOv8 model inference (`yolov8n.onnx`) for person/vehicle detection.
   - [ ] SQLite model: `TimelineEvent` (clip_id, timestamp, label, confidence, bbox).
