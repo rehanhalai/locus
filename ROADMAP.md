@@ -20,8 +20,9 @@
 | **06. Local AI Video Analytics (ONNX)** | ✅ Completed | ⏳ Pending | 🔄 In Progress | AI / CV Engineer |
 | **07. Evidence Search & Event Filtering** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Backend / Frontend |
 
-| **08. Hash Verification & Evidence Export** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Systems / Backend |
+| **08. Hash Verification & Evidence Export** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Systems / Backend |
 | **09. Forensic PDF Reporting & Audit Trail** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Full-Stack |
+
 
 
 ---
@@ -114,12 +115,12 @@
 - [x] **Flow 07: Evidence Search & Filtering**
   - [x] Sub-second parameter query endpoint (`GET /api/v1/analytics/events/{evidence_id}` by camera, time range, class, confidence).
   - [ ] Interactive thumbnail gallery and timeline heatmap markers (Frontend).
-- [ ] **Flow 08: Cryptographic Verification & Export**
-
-  - [ ] Zero-transcoding export of investigator-selected time slices.
-  - [ ] Auto-generation of `.sync.json` audit sidecar linked to original evidence hash.
-  - [ ] On-demand case integrity verification (`POST /api/verify`).
+- [x] **Flow 08: Cryptographic Verification & Export**
+  - [x] Zero-transcoding export of investigator-selected time slices (`slicer.py`).
+  - [x] Auto-generation of `.sync.json` audit sidecar linked to original evidence hash (`service.py`).
+  - [x] On-demand case integrity verification and reverse-lookup recovery (`POST /api/v1/export/verify`, `POST /api/v1/export/recover-by-hash`).
 - [ ] **Flow 09: Forensic PDF Report Generator**
+
   - [ ] Export case dossier with hash parity tables, chain-of-custody logs, and thumbnail snapshots.
 
 ---
