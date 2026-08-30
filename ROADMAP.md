@@ -21,7 +21,8 @@
 | **07. Evidence Search & Event Filtering** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Backend / Frontend |
 
 | **08. Hash Verification & Evidence Export** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Systems / Backend |
-| **09. Forensic PDF Reporting & Audit Trail** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Full-Stack |
+| **09. Forensic PDF Reporting & Audit Trail** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Full-Stack |
+
 
 
 
@@ -118,10 +119,9 @@
 - [x] **Flow 08: Cryptographic Verification & Export**
   - [x] Zero-transcoding export of investigator-selected time slices (`slicer.py`).
   - [x] Auto-generation of `.sync.json` audit sidecar linked to original evidence hash (`service.py`).
-  - [x] On-demand case integrity verification and reverse-lookup recovery (`POST /api/v1/export/verify`, `POST /api/v1/export/recover-by-hash`).
-- [ ] **Flow 09: Forensic PDF Report Generator**
+- [x] **Flow 09: Forensic PDF Report Generator**
+  - [x] Export case dossier with hash parity tables, timeline calibrations, AI event logs, and chain-of-custody audit trail (`pdf_generator.py`, `service.py`, `router.py`).
 
-  - [ ] Export case dossier with hash parity tables, chain-of-custody logs, and thumbnail snapshots.
 
 ---
 

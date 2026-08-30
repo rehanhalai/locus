@@ -10,6 +10,7 @@ from app.modules.cases.router import router as cases_router
 from app.modules.export.router import router as export_router
 from app.modules.header_parser.router import router as headers_router
 from app.modules.identification.router import router as identify_router
+from app.modules.reports.router import router as reports_router
 from app.modules.timeline.router import router as timeline_router
 
 # Ensure SQLite tables exist
@@ -37,6 +38,7 @@ app.include_router(carver_router, prefix="/api/v1")
 app.include_router(timeline_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(export_router, prefix="/api/v1")
+app.include_router(reports_router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["System"])
