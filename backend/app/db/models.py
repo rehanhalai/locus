@@ -64,6 +64,51 @@ class VideoCodec(StrEnum):
     UNKNOWN = "UNKNOWN"
 
 
+class EventLabel(StrEnum):
+    # People
+    PERSON = "person"
+
+    # Vehicles & Transportation
+    CAR = "car"
+    MOTORCYCLE = "motorcycle"
+    BICYCLE = "bicycle"
+    BUS = "bus"
+    TRUCK = "truck"
+    BOAT = "boat"
+    AIRPLANE = "airplane"
+    TRAIN = "train"
+
+    # Bags, Luggage & Carried Items (Theft / Robbery)
+    BACKPACK = "backpack"
+    HANDBAG = "handbag"
+    SUITCASE = "suitcase"
+    UMBRELLA = "umbrella"
+
+    # Weapons & Potential Threats
+    KNIFE = "knife"
+    SCISSORS = "scissors"
+
+    # Electronics & Valuables
+    CELL_PHONE = "cell phone"
+    LAPTOP = "laptop"
+    TV = "tv"
+
+    # Animals (Distraction / Intrusion filtering)
+    DOG = "dog"
+    CAT = "cat"
+    HORSE = "horse"
+    BIRD = "bird"
+
+    # Infrastructure / Scene Markers
+    TRAFFIC_LIGHT = "traffic light"
+    FIRE_HYDRANT = "fire hydrant"
+    STOP_SIGN = "stop sign"
+
+    # Motion & Fallback
+    MOTION = "motion"
+    OTHER = "other"
+
+
 class Case(Base):
     __tablename__ = "cases"
 
@@ -136,6 +181,9 @@ class EvidenceFiles(Base):
     )
     timeline_calibrations = relationship(
         "TimelineCalibration", back_populates="evidence", cascade="all, delete-orphan"
+    )
+    timeline_events = relationship(
+        "TimelineEvent", back_populates="evidence", cascade="all, delete-orphan"
     )
 
 
@@ -225,6 +273,9 @@ class CarvedClip(Base):
     created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
 
     evidence = relationship("EvidenceFiles", back_populates="carved_clips")
+    timeline_events = relationship(
+        "TimelineEvent", back_populates="clip", cascade="all, delete-orphan"
+    )
 
 
 class TimelineCalibration(Base):
@@ -241,3 +292,26 @@ class TimelineCalibration(Base):
     )
 
     evidence = relationship("EvidenceFiles", back_populates="timeline_calibrations")
+
+
+class TimelineEvent(Base):
+    __tablename__ = "timeline_events"
+
+    id = Column(String(64), primary_key=True, index=True)  # e.g. "evt_a1b2c3d4e5f6"
+    evidence_id = Column(String(64), ForeignKey("evidence_files.id"), index=True, nullable=False)
+    clip_id = Column(String(64), ForeignKey("carved_clips.id"), index=True, nullable=True)
+    camera_id = Column(Integer, index=True, nullable=False)
+    timestamp = Column(DateTime, index=True, nullable=False)  # Calibrated timestamp of detection
+    frame_number = Column(Integer, default=0, nullable=False)
+    label = Column(SAEnum(EventLabel), default=EventLabel.PERSON, index=True, nullable=False)
+
+    confidence = Column(Float, nullable=False)  # 0.0 to 1.0 (e.g. 0.94)
+    bbox_x = Column(Float, default=0.0, nullable=False)  # Normalized 0.0 - 1.0 (top-left x)
+    bbox_y = Column(Float, default=0.0, nullable=False)  # Top-left y
+    bbox_w = Column(Float, default=0.0, nullable=False)  # Width
+    bbox_h = Column(Float, default=0.0, nullable=False)  # Height
+    is_motion = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+
+    evidence = relationship("EvidenceFiles", back_populates="timeline_events")
+    clip = relationship("CarvedClip", back_populates="timeline_events")

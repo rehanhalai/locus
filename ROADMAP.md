@@ -17,12 +17,12 @@
 | **03. Sector Header Parsing & Master Map** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Systems / Backend |
 | **04. Video Carving & Stream Remuxing** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Systems Engineer |
 | **05. Multi-Camera Master Timeline Sync** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Frontend / Backend |
+| **06. Local AI Video Analytics (ONNX)** | ✅ Completed | ⏳ Pending | 🔄 In Progress | AI / CV Engineer |
+| **07. Evidence Search & Event Filtering** | ✅ Completed | ⏳ Pending | 🔄 In Progress | Backend / Frontend |
 
-| **06. Local AI Video Analytics (ONNX)** | ⏳ Pending | ⏳ Pending | ⏳ Pending | AI / CV Engineer |
-
-| **07. Evidence Search & Event Filtering** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Backend / Frontend |
 | **08. Hash Verification & Evidence Export** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Systems / Backend |
 | **09. Forensic PDF Reporting & Audit Trail** | ⏳ Pending | ⏳ Pending | ⏳ Pending | Full-Stack |
+
 
 ---
 
@@ -106,15 +106,16 @@
   - [x] Multi-camera grid frame sync resolver for HTML5 video player seek offsets (`router.py`, `service.py`).
   - [x] Automated test suites: `test_timeline.py`, `test_timeline_api.py`.
   - [ ] React multi-track timeline visualization component.
-- [ ] **Flow 06: Local AI Video Analytics (ONNX Runtime)**
-
-  - [ ] OpenCV MOG2 background subtractor to detect motion voids and skip inactive frames.
-  - [ ] ONNX Runtime YOLOv8 model inference (`yolov8n.onnx`) for person/vehicle detection.
-  - [ ] SQLite model: `TimelineEvent` (clip_id, timestamp, label, confidence, bbox).
-- [ ] **Flow 07: Evidence Search & Filtering**
-  - [ ] Sub-second parameter query endpoint (`GET /api/search` by camera, time range, class, confidence).
-  - [ ] Interactive thumbnail gallery and timeline heatmap markers.
+- [x] **Flow 06: Local AI Video Analytics (ONNX Runtime)**
+  - [x] OpenCV MOG2 background subtractor to detect motion voids and skip inactive frames (`motion.py`).
+  - [x] ONNX Runtime YOLOv8 model inference (`yolov8n.onnx`) for person/vehicle detection (`detector.py`).
+  - [x] SQLite model: `TimelineEvent` (clip_id, timestamp, label, confidence, bbox in `models.py`).
+  - [x] Background worker pipeline and real-time SSE progress stream (`service.py`, `router.py`).
+- [x] **Flow 07: Evidence Search & Filtering**
+  - [x] Sub-second parameter query endpoint (`GET /api/v1/analytics/events/{evidence_id}` by camera, time range, class, confidence).
+  - [ ] Interactive thumbnail gallery and timeline heatmap markers (Frontend).
 - [ ] **Flow 08: Cryptographic Verification & Export**
+
   - [ ] Zero-transcoding export of investigator-selected time slices.
   - [ ] Auto-generation of `.sync.json` audit sidecar linked to original evidence hash.
   - [ ] On-demand case integrity verification (`POST /api/verify`).
