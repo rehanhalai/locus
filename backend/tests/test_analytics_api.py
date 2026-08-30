@@ -304,4 +304,3 @@ async def test_stream_analytics_progress_sse_lifecycle(client: TestClient, db):
     first_event = events_received[0]
     assert "task_id" in first_event
     assert "progress_percent" in first_event
-
