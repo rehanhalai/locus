@@ -7,16 +7,12 @@ import {
   FolderOpen,
   RefreshCw,
   HardDrive,
-  SkipBack,
-  SkipForward,
-  Play,
-  Pause,
-  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { useCaseStore } from "../stores/useCaseStore";
 import { CameraTile } from "../components/player/CameraTile";
+import { TimelineScrubber } from "../components/player/TimelineScrubber";
 import { useQuery } from "@tanstack/react-query";
 import { casesApi } from "../api/cases";
 import { videoApi } from "../api/video";
@@ -43,11 +39,6 @@ export function InvestigatePage() {
   const setActiveEvidenceId = useCaseStore((s) => s.setActiveEvidenceId);
   const focusedCameraId = useCaseStore((s) => s.focusedCameraId);
   const setFocusedCameraId = useCaseStore((s) => s.setFocusedCameraId);
-
-  const isPlaying = useCaseStore((s) => s.isPlaying);
-  const togglePlay = useCaseStore((s) => s.togglePlay);
-  const stepFrame = useCaseStore((s) => s.stepFrame);
-  const masterPlayheadTime = useCaseStore((s) => s.masterPlayheadTime);
 
   // 1. Fetch case details to find attached evidence
   const { data: caseDetails } = useQuery({
@@ -264,68 +255,8 @@ export function InvestigatePage() {
         )}
       </div>
 
-      {/* Master Timeline Scrubber & Transport Bar */}
-      <div className="h-20 border-t border-border bg-card/80 backdrop-blur-md px-6 flex flex-col justify-center space-y-2 select-none shrink-0">
-        {/* Playhead Slider Track */}
-        <div className="flex items-center gap-4 text-xs font-mono text-muted-foreground">
-          <span>14:00:00 UTC</span>
-          <div className="flex-1 relative h-6 bg-secondary/80 rounded-md border border-border flex items-center px-2 cursor-pointer">
-            <div className="w-1/3 h-2 bg-primary/40 rounded-sm relative">
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 size-4 bg-primary rounded-full shadow-md shadow-primary/40 border-2 border-background" />
-            </div>
-          </div>
-          <span>15:00:00 UTC</span>
-        </div>
-
-        {/* Transport Controls */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={() => stepFrame(-1)}
-              title="Step Back 1 Frame [Hotkey: []"
-            >
-              <SkipBack className="size-3 mr-1" />1 Frame
-            </Button>
-
-            <Button
-              variant={isPlaying ? "destructive" : "default"}
-              size="sm"
-              onClick={togglePlay}
-              className="gap-1.5 px-4 font-semibold"
-              title="Play/Pause [Hotkey: Space]"
-            >
-              {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
-              {isPlaying ? "Pause" : "Play"}
-            </Button>
-
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={() => stepFrame(1)}
-              title="Step Forward 1 Frame [Hotkey: ]]"
-            >
-              1 Frame
-              <SkipForward className="size-3 ml-1" />
-            </Button>
-          </div>
-
-          {/* Center Timecode Display */}
-          <div className="text-sm font-mono font-bold tracking-wider text-primary">
-            {masterPlayheadTime.slice(11, 23)} UTC
-          </div>
-
-          {/* Right Tools */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-muted-foreground">Speed: 1.0x</span>
-            <Button variant="ghost" size="xs">
-              <SlidersHorizontal className="size-3.5 mr-1" />
-              Calibrate Offsets
-            </Button>
-          </div>
-        </div>
-      </div>
+      {/* Master Timeline Scrubber & Synchronized Playhead */}
+      <TimelineScrubber clips={carvedData?.clips || []} />
     </div>
   );
 }
