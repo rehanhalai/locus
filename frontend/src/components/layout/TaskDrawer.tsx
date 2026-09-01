@@ -89,9 +89,7 @@ export function TaskDrawer() {
                     ) : (
                       <span>ID: {task.task_id.slice(0, 8)}...</span>
                     )}
-                    {task.message && (
-                      <span className="truncate max-w-[140px]">{task.message}</span>
-                    )}
+                    {task.message && <span className="truncate max-w-[140px]">{task.message}</span>}
                   </div>
                 </div>
               );
@@ -101,12 +99,14 @@ export function TaskDrawer() {
 
         {/* Footer */}
         <div className="pt-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
-          <span>Press <kbd className="font-mono bg-muted px-1.5 py-0.5 rounded text-[10px] border border-border">T</kbd> to toggle</span>
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={() => setTaskDrawerOpen(false)}
-          >
+          <span>
+            Press{" "}
+            <kbd className="font-mono bg-muted px-1.5 py-0.5 rounded text-[10px] border border-border">
+              T
+            </kbd>{" "}
+            to toggle
+          </span>
+          <Button variant="ghost" size="xs" onClick={() => setTaskDrawerOpen(false)}>
             Close
           </Button>
         </div>

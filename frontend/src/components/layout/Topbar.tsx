@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  FolderOpen,
-  Activity,
-  AlertCircle,
-  Clock,
-  ChevronDown,
-} from "lucide-react";
+import { FolderOpen, Activity, AlertCircle, Clock, ChevronDown } from "lucide-react";
 import { useCaseStore } from "../../stores/useCaseStore";
 import { useCase } from "../../context/CaseContext";
 import { format } from "date-fns";
@@ -34,9 +28,7 @@ export function Topbar() {
   );
   const avgProgress =
     activeJobs.length > 0
-      ? Math.round(
-          activeJobs.reduce((acc, t) => acc + t.progress_percent, 0) / activeJobs.length
-        )
+      ? Math.round(activeJobs.reduce((acc, t) => acc + t.progress_percent, 0) / activeJobs.length)
       : 0;
 
   return (

@@ -10,11 +10,9 @@ export const exportApi = {
     end_time: string;
     investigator?: string;
     reason?: string;
-  }) =>
-    api.post<EvidenceExport>("/export/slice", payload),
+  }) => api.post<EvidenceExport>("/export/slice", payload),
 
-  getExportDetails: (exportId: string) =>
-    api.get<EvidenceExport>(`/export/${exportId}`),
+  getExportDetails: (exportId: string) => api.get<EvidenceExport>(`/export/${exportId}`),
 
   verifyIntegrity: (payload: { file_sha256?: string; manifest_json?: string }) =>
     api.post<VerifyResult>("/export/verify", payload),
@@ -31,7 +29,9 @@ export const exportApi = {
       generated_at: string;
       file_size_bytes: number;
       download_url: string;
-    }>(`/reports/generate/${caseId}?investigator=${encodeURIComponent(investigator || "Forensic Officer")}`),
+    }>(
+      `/reports/generate/${caseId}?investigator=${encodeURIComponent(investigator || "Forensic Officer")}`
+    ),
 
   getCaseSummary: (caseId: string) =>
     api.get<{

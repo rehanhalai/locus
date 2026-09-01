@@ -1,11 +1,5 @@
 export type EventLabel =
-  | "person"
-  | "car"
-  | "truck"
-  | "bus"
-  | "motorcycle"
-  | "bicycle"
-  | "motion_void";
+  "person" | "car" | "truck" | "bus" | "motorcycle" | "bicycle" | "motion_void";
 
 export interface TimelineEvent {
   id: string;

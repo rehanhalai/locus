@@ -40,7 +40,8 @@ export function ExportPage() {
           Evidence Export & Cryptographic Hashing
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Perform zero-transcode time slicing, compute HMAC-signed sidecar receipts, and export court-ready evidence bundles.
+          Perform zero-transcode time slicing, compute HMAC-signed sidecar receipts, and export
+          court-ready evidence bundles.
         </p>
       </div>
 
@@ -74,7 +75,9 @@ export function ExportPage() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-mono text-muted-foreground">Export Reason (Audit Trail)</label>
+          <label className="text-xs font-mono text-muted-foreground">
+            Export Reason (Audit Trail)
+          </label>
           <Input
             defaultValue="Found suspicious activity matching suspect description"
             className="text-xs"

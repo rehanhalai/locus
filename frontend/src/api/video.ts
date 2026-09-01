@@ -3,7 +3,11 @@ import type { CarvedClip, Calibration, GridSyncFrameResponse } from "../types/vi
 
 export const videoApi = {
   // Flow 03: Header parsing
-  parseHeaders: (payload: { evidence_id: string; partition_index?: number; investigator?: string }) =>
+  parseHeaders: (payload: {
+    evidence_id: string;
+    partition_index?: number;
+    investigator?: string;
+  }) =>
     api.post<{ task_id: string; evidence_id: string; status: string; message: string }>(
       "/headers/parse",
       payload
@@ -87,8 +91,7 @@ export const videoApi = {
     offset_seconds: number;
     reason?: string;
     investigator?: string;
-  }) =>
-    api.post<Calibration>("/timeline/calibrate", payload),
+  }) => api.post<Calibration>("/timeline/calibrate", payload),
 
   getCalibrations: (evidenceId: string) =>
     api.get<Calibration[]>(`/timeline/calibrations/${evidenceId}`),

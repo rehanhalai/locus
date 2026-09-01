@@ -67,7 +67,8 @@ export function AuditPage() {
             Immutable Forensic Audit Trail Ledger
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Tamper-evident chain of custody recording every cryptographic event, user calibration, and export.
+            Tamper-evident chain of custody recording every cryptographic event, user calibration,
+            and export.
           </p>
         </div>
 

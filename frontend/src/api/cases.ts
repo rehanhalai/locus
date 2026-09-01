@@ -5,17 +5,14 @@ export const casesApi = {
   listCases: (status?: CaseStatus, search?: string) =>
     api.get<Case[]>("/cases/", { status, search }),
 
-  getCase: (caseId: string) =>
-    api.get<Case>(`/cases/${caseId}`),
+  getCase: (caseId: string) => api.get<Case>(`/cases/${caseId}`),
 
-  createCase: (payload: CaseCreatePayload) =>
-    api.post<Case>("/cases/", payload),
+  createCase: (payload: CaseCreatePayload) => api.post<Case>("/cases/", payload),
 
   updateCase: (caseId: string, payload: CaseUpdatePayload) =>
     api.patch<Case>(`/cases/${caseId}`, payload),
 
-  deleteCase: (caseId: string) =>
-    api.delete<void>(`/cases/${caseId}`),
+  deleteCase: (caseId: string) => api.delete<void>(`/cases/${caseId}`),
 
   // Flow 01: Ingestion & Cloning
   ingestFile: (payload: { case_id: string; file_path: string; investigator?: string }) =>
@@ -36,15 +33,17 @@ export const casesApi = {
     ),
 
   getAcquisitionTasks: () =>
-    api.get<Array<{
-      task_id: string;
-      case_id: string;
-      source_device: string;
-      output_path: string;
-      status: string;
-      latest_event?: unknown;
-      created_at: string;
-    }>>("/acquisition/tasks"),
+    api.get<
+      Array<{
+        task_id: string;
+        case_id: string;
+        source_device: string;
+        output_path: string;
+        status: string;
+        latest_event?: unknown;
+        created_at: string;
+      }>
+    >("/acquisition/tasks"),
 
   getAcquisitionTask: (taskId: string) =>
     api.get<{

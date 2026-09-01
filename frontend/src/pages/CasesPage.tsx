@@ -18,7 +18,8 @@ export function CasesPage() {
             Forensic Cases Hub
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage evidence files, create new case dossiers, or select an active case for investigation.
+            Manage evidence files, create new case dossiers, or select an active case for
+            investigation.
           </p>
         </div>
 
@@ -74,7 +75,8 @@ export function CasesPage() {
               </CardTitle>
             </div>
             <CardDescription>
-              Directly ingest raw .dd, .raw, or .bin forensic images with automatic proprietary signature detection.
+              Directly ingest raw .dd, .raw, or .bin forensic images with automatic proprietary
+              signature detection.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -101,7 +103,8 @@ export function CasesPage() {
               </CardTitle>
             </div>
             <CardDescription>
-              Courtroom-grade immutable audit logs recording every acquisition, offset calibration, and export.
+              Courtroom-grade immutable audit logs recording every acquisition, offset calibration,
+              and export.
             </CardDescription>
           </CardHeader>
           <CardContent>

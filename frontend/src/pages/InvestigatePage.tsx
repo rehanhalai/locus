@@ -1,4 +1,12 @@
-import { Camera, Play, Pause, SkipBack, SkipForward, SlidersHorizontal, Maximize2 } from "lucide-react";
+import {
+  Camera,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  SlidersHorizontal,
+  Maximize2,
+} from "lucide-react";
 import { Button } from "../components/ui/button";
 import { useCaseStore } from "../stores/useCaseStore";
 
@@ -27,10 +35,10 @@ export function InvestigatePage() {
                   {camId === 1
                     ? "Main Entrance"
                     : camId === 2
-                    ? "Cash Counter"
-                    : camId === 3
-                    ? "Vault Area"
-                    : "Street Corner"}
+                      ? "Cash Counter"
+                      : camId === 3
+                        ? "Vault Area"
+                        : "Street Corner"}
                 </span>
               </div>
 
@@ -85,8 +93,7 @@ export function InvestigatePage() {
               onClick={() => stepFrame(-1)}
               title="Step Back 1 Frame [Hotkey: []"
             >
-              <SkipBack className="size-3 mr-1" />
-              1 Frame
+              <SkipBack className="size-3 mr-1" />1 Frame
             </Button>
 
             <Button

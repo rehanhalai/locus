@@ -21,10 +21,16 @@ export function subscribeSSE<T = Record<string, unknown>>(
       const parsed = JSON.parse(event.data) as T;
       options.onMessage(parsed);
 
-      const status = (parsed as { status?: string; stage?: string }).status ||
-                     (parsed as { status?: string; stage?: string }).stage;
+      const status =
+        (parsed as { status?: string; stage?: string }).status ||
+        (parsed as { status?: string; stage?: string }).stage;
 
-      if (status === "DONE" || status === "COMPLETED" || status === "FAILED" || status === "ERROR") {
+      if (
+        status === "DONE" ||
+        status === "COMPLETED" ||
+        status === "FAILED" ||
+        status === "ERROR"
+      ) {
         eventSource.close();
         if (options.onComplete) {
           options.onComplete();

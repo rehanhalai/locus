@@ -114,8 +114,8 @@ export function Sidebar() {
                   isActive
                     ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
                     : isDisabled
-                    ? "opacity-30 cursor-not-allowed text-muted-foreground"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      ? "opacity-30 cursor-not-allowed text-muted-foreground"
+                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 )}
                 title={`${item.name} [Hotkey: ${item.hotkey}]`}
               >
