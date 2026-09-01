@@ -121,9 +121,12 @@ class Case(Base):
     description = Column(Text, nullable=True)
     status = Column(SAEnum(CaseStatus), default=CaseStatus.ACTIVE, nullable=False)
     storage_path = Column(String(512), nullable=True)
-    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     updated_at = Column(
-        DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC), nullable=False
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
     )
 
     evidence_files = relationship(
@@ -148,7 +151,7 @@ class AuditLog(Base):
     actor = Column(String(128), default="Forensic Officer")  # Who performed the action
     details = Column(Text, nullable=True)  # e.g., "Baseline SHA-256 computed: e3b0c44..."
     integrity_status = Column(SAEnum(IntegrityStatus), default=IntegrityStatus.VERIFIED)
-    timestamp = Column(DateTime, default=datetime.now(UTC), nullable=False)
+    timestamp = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
 
 class EvidenceFiles(Base):
@@ -167,7 +170,7 @@ class EvidenceFiles(Base):
 
     bad_sectors_count = Column(Integer, default=0)
     write_block_verified = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
     case = relationship("Case", back_populates="evidence_files")
     device_metadata = relationship(
@@ -210,7 +213,7 @@ class DeviceMetadata(Base):
         SAEnum(FileSystemType), default=FileSystemType.UNKNOWN, nullable=True
     )  # "DHFS", "HKFS", "WFS", "FAT32", "RAW_STREAM", etc.
     confidence_score = Column(Float, default=0.0, nullable=False)
-    analyzed_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+    analyzed_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
     evidence = relationship("EvidenceFiles", back_populates="device_metadata")
 
@@ -251,7 +254,7 @@ class MasterSectorMap(Base):
     )  # "H264", "H265", "MPEG4", "MJPEG", "UNKNOWN"
     size_bytes = Column(BigInteger, nullable=False)
 
-    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
     evidence = relationship("EvidenceFiles", back_populates="master_sector_maps")
 
@@ -274,7 +277,7 @@ class CarvedClip(Base):
     sha256_hash = Column(String(64), nullable=False)  # Forensic proof
     md5_hash = Column(String(32), nullable=False)
     frame_count = Column(Integer, default=0, nullable=False)
-    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
     evidence = relationship("EvidenceFiles", back_populates="carved_clips")
     timeline_events = relationship(
@@ -293,7 +296,10 @@ class TimelineCalibration(Base):
     reason = Column(String(255), nullable=True)  # e.g., "Calibrated with atomic reference clock"
     calibrated_by = Column(String(128), default="Forensic Officer", nullable=False)
     updated_at = Column(
-        DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC), nullable=False
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
     )
 
     evidence = relationship("EvidenceFiles", back_populates="timeline_calibrations")
@@ -316,7 +322,7 @@ class TimelineEvent(Base):
     bbox_w = Column(Float, default=0.0, nullable=False)  # Width
     bbox_h = Column(Float, default=0.0, nullable=False)  # Height
     is_motion = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
     evidence = relationship("EvidenceFiles", back_populates="timeline_events")
     clip = relationship("CarvedClip", back_populates="timeline_events")
@@ -347,7 +353,7 @@ class EvidenceExport(Base):
     manifest_signature = Column(String(64), nullable=False)
 
     exported_by = Column(String(128), default="Forensic Officer", nullable=False)
-    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
     evidence = relationship("EvidenceFiles", back_populates="exports")
     clip = relationship("CarvedClip", back_populates="exports")

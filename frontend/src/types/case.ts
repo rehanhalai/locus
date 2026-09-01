@@ -37,7 +37,7 @@ export interface Case {
   created_at: string;
   updated_at: string;
   evidence_count?: number;
-  evidence_files?: EvidenceFile[];
+  // evidence_files?: EvidenceFile[];
   audit_logs?: AuditLog[];
 }
 
@@ -53,4 +53,39 @@ export interface CaseUpdatePayload {
   investigator?: string;
   description?: string;
   status?: CaseStatus;
+}
+
+export interface BlockDeviceInfo {
+  name: string;
+  path: string;
+  size: string;
+  size_bytes?: number;
+  model?: string;
+  vendor?: string;
+  transport?: string;
+  removable?: boolean;
+}
+
+export interface FsEntry {
+  name: string;
+  path: string;
+  is_dir: boolean;
+  size?: string;
+  size_bytes?: number;
+  modified_at?: string;
+  is_forensic: boolean;
+  extension?: string;
+}
+
+export interface FsBrowseShortcut {
+  name: string;
+  path: string;
+  icon_type: string;
+}
+
+export interface FsBrowseResponse {
+  current_path: string;
+  parent_path?: string;
+  entries: FsEntry[];
+  shortcuts: FsBrowseShortcut[];
 }

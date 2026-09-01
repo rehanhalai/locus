@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FolderOpen, Activity, AlertCircle, Clock, ChevronDown } from "lucide-react";
+import { SidebarTrigger } from "../ui/sidebar";
 import { useCaseStore } from "../../stores/useCaseStore";
 import { useCase } from "../../context/CaseContext";
 import { format } from "date-fns";
@@ -16,7 +17,7 @@ export function Topbar() {
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
-      setUtcTime(format(now, "yyyy-MM-dd HH:mm:ss") + " UTC");
+      setUtcTime(format(now, "yyyy-MM-dd hh:mm:ss a"));
     };
     updateClock();
     const timer = setInterval(updateClock, 1000);
@@ -32,9 +33,12 @@ export function Topbar() {
       : 0;
 
   return (
-    <header className="h-12 border-b border-border bg-card/60 backdrop-blur-md px-4 flex items-center justify-between select-none z-20">
-      {/* Left: Active Case Pill */}
-      <div className="flex items-center gap-3">
+    <header className="h-12 border-b border-border bg-card/60 backdrop-blur-md px-3 flex items-center justify-between select-none z-20">
+      {/* Left: Sidebar Trigger & Active Case Pill */}
+      <div className="flex items-center gap-2">
+        <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+        <div className="h-4 w-px bg-border mx-1" />
+
         {activeCaseId ? (
           <button
             onClick={() => navigate("/cases")}

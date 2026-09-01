@@ -1,5 +1,12 @@
 import { api } from "./client";
-import type { Case, CaseCreatePayload, CaseStatus, CaseUpdatePayload } from "../types/case";
+import type {
+  BlockDeviceInfo,
+  Case,
+  CaseCreatePayload,
+  CaseStatus,
+  CaseUpdatePayload,
+  FsBrowseResponse,
+} from "../types/case";
 
 export const casesApi = {
   listCases: (status?: CaseStatus, search?: string) =>
@@ -31,6 +38,11 @@ export const casesApi = {
       "/acquisition/clone",
       payload
     ),
+
+  listDevices: () => api.get<BlockDeviceInfo[]>("/acquisition/devices"),
+
+  browseFilesystem: (path?: string) =>
+    api.get<FsBrowseResponse>("/acquisition/browse-fs", path ? { path } : undefined),
 
   getAcquisitionTasks: () =>
     api.get<

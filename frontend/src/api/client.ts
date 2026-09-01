@@ -13,6 +13,52 @@ export class ApiError extends Error {
   }
 }
 
+function extractErrorMessage(errorData: unknown, status: number): string {
+  if (typeof errorData === "string" && errorData.trim()) {
+    return errorData;
+  }
+
+  if (typeof errorData === "object" && errorData !== null) {
+    const obj = errorData as Record<string, unknown>;
+
+    // FastAPI detail field
+    if ("detail" in obj) {
+      const detail = obj.detail;
+      if (typeof detail === "string") {
+        return detail;
+      }
+      if (Array.isArray(detail)) {
+        return detail
+          .map((item: unknown) => {
+            if (typeof item === "string") return item;
+            if (typeof item === "object" && item !== null) {
+              const errItem = item as Record<string, unknown>;
+              const loc = Array.isArray(errItem.loc)
+                ? errItem.loc.filter((l) => l !== "body").join(".")
+                : "";
+              const msg = String(errItem.msg || errItem.message || JSON.stringify(errItem));
+              return loc ? `${loc}: ${msg}` : msg;
+            }
+            return String(item);
+          })
+          .join(", ");
+      }
+      if (typeof detail === "object" && detail !== null) {
+        return JSON.stringify(detail);
+      }
+    }
+
+    if ("error" in obj && typeof obj.error === "string") {
+      return obj.error;
+    }
+    if ("message" in obj && typeof obj.message === "string") {
+      return obj.message;
+    }
+  }
+
+  return `HTTP error! status: ${status}`;
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = endpoint.startsWith("http") ? endpoint : `${BASE_URL}${endpoint}`;
 
@@ -34,10 +80,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       } catch {
         errorData = await response.text();
       }
-      const message =
-        typeof errorData === "object" && errorData !== null && "detail" in errorData
-          ? String((errorData as { detail: unknown }).detail)
-          : `HTTP error! status: ${response.status}`;
+      const message = extractErrorMessage(errorData, response.status);
       throw new ApiError(message, response.status, errorData);
     }
 

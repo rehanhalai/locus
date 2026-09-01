@@ -32,7 +32,7 @@ export function ExportPage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-200">
+    <div className="p-6 md:p-8 w-full space-y-6 animate-in fade-in duration-200">
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold font-heading tracking-tight flex items-center gap-3">
