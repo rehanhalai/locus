@@ -54,3 +54,14 @@ export interface CaseUpdatePayload {
   description?: string;
   status?: CaseStatus;
 }
+
+export interface BlockDeviceInfo {
+  name: string;
+  path: string;
+  size: string;
+  size_bytes?: number;
+  model?: string;
+  vendor?: string;
+  transport?: string;
+  removable?: boolean;
+}

@@ -1,5 +1,11 @@
 import { api } from "./client";
-import type { Case, CaseCreatePayload, CaseStatus, CaseUpdatePayload } from "../types/case";
+import type {
+  BlockDeviceInfo,
+  Case,
+  CaseCreatePayload,
+  CaseStatus,
+  CaseUpdatePayload,
+} from "../types/case";
 
 export const casesApi = {
   listCases: (status?: CaseStatus, search?: string) =>
@@ -31,6 +37,8 @@ export const casesApi = {
       "/acquisition/clone",
       payload
     ),
+
+  listDevices: () => api.get<BlockDeviceInfo[]>("/acquisition/devices"),
 
   getAcquisitionTasks: () =>
     api.get<

@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   HardDrive,
   FileCode2,
@@ -10,6 +11,8 @@ import {
   ShieldCheck,
   FolderSearch,
   RefreshCcw,
+  Usb,
+  Cpu,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
@@ -91,6 +94,14 @@ export function EvidenceIntakeModal({
   const [deviceBrand, setDeviceBrand] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
+  // Live Query to detect real system block devices from backend API
+  const { data: detectedDevices = [], isLoading: isLoadingDevices } = useQuery({
+    queryKey: ["system-block-devices"],
+    queryFn: () => casesApi.listDevices(),
+    enabled: open,
+    staleTime: 10000,
+  });
+
   const validateFileExtension = (pathOrName: string): boolean => {
     const lower = pathOrName.toLowerCase();
     return ALLOWED_EXTENSIONS.some((ext) => lower.endsWith(ext));
@@ -112,7 +123,6 @@ export function EvidenceIntakeModal({
       }
 
       setApiError(null);
-      // In browsers, file.name or relative path can be used
       setFilePath(file.name);
     }
   };
@@ -141,9 +151,14 @@ export function EvidenceIntakeModal({
         return;
       }
 
-      if (!targetDevice.startsWith("/dev/")) {
+      const isValidDeviceNode =
+        targetDevice.startsWith("/dev/") ||
+        targetDevice.startsWith("\\\\.\\") ||
+        targetDevice.toLowerCase().includes("physicaldrive");
+
+      if (!isValidDeviceNode) {
         setApiError(
-          `Invalid block device identifier "${targetDevice}". Must start with /dev/ (e.g. /dev/sdb).`
+          `Invalid block device identifier "${targetDevice}". Use /dev/... (Linux/macOS) or \\\\.\\PhysicalDriveN (Windows).`
         );
         return;
       }
@@ -231,7 +246,7 @@ export function EvidenceIntakeModal({
           setIsProcessing(false);
           setApiError(
             err.message.includes("dc3dd")
-              ? `dc3dd Clone Failed: ${err.message}. Ensure the target device is connected, not locked by another process, and locus has appropriate read permissions.`
+              ? `dc3dd Clone Failed: ${err.message}. Ensure the target device is connected, unmounted, and locus has read permissions.`
               : `Acquisition Failed: ${err.message}`
           );
         },
@@ -356,35 +371,52 @@ export function EvidenceIntakeModal({
                 </div>
               </TabsContent>
 
-              {/* Tab 2: Physical Device */}
+              {/* Tab 2: Physical Device with Live Hardware Discovery */}
               <TabsContent value="device" className="space-y-3 pt-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground flex items-center justify-between">
-                    <span>Source Block Device *</span>
-                    <span className="text-[10px] text-muted-foreground">
-                      Physical DVR/CCTV Drive
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-foreground">
+                      Source Block Device *
+                    </label>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {isLoadingDevices
+                        ? "Scanning drives..."
+                        : `${detectedDevices.length} drive(s) detected`}
                     </span>
-                  </label>
+                  </div>
 
                   <Select
                     value={sourceDevice}
                     onValueChange={(val: string | null) => setSourceDevice(val || "")}
                   >
                     <SelectTrigger className="w-full font-mono text-xs">
-                      <SelectValue placeholder="Select physical drive..." />
+                      <SelectValue placeholder="Select connected hardware drive..." />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        <SelectLabel>Common Hardware Nodes</SelectLabel>
-                        <SelectItem value="/dev/sdb">
-                          /dev/sdb — Secondary SATA / USB Drive
-                        </SelectItem>
-                        <SelectItem value="/dev/sdc">/dev/sdc — External Mass Storage</SelectItem>
-                        <SelectItem value="/dev/sdd">/dev/sdd — Removable Flash Storage</SelectItem>
-                        <SelectItem value="/dev/nvme0n1">
-                          /dev/nvme0n1 — NVMe Storage Module
-                        </SelectItem>
-                        <SelectItem value="custom">Enter Custom Device Path...</SelectItem>
+                        <SelectLabel>Connected Block Devices</SelectLabel>
+                        {detectedDevices.map((dev) => (
+                          <SelectItem key={dev.path} value={dev.path}>
+                            <div className="flex items-center gap-2">
+                              {dev.transport === "usb" || dev.removable ? (
+                                <Usb className="size-3 text-cyan-400" />
+                              ) : (
+                                <Cpu className="size-3 text-primary" />
+                              )}
+                              <span className="font-bold">{dev.path}</span>
+                              <span className="text-muted-foreground">
+                                ({dev.size}
+                                {dev.model ? ` — ${dev.model}` : ""})
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                        {detectedDevices.length === 0 && (
+                          <SelectItem value="/dev/sdb">
+                            /dev/sdb — Secondary SATA / USB Drive (Standard)
+                          </SelectItem>
+                        )}
+                        <SelectItem value="custom">Enter Custom Device Node...</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -393,7 +425,7 @@ export function EvidenceIntakeModal({
                 {sourceDevice === "custom" && (
                   <div className="space-y-1.5 animate-in fade-in duration-150">
                     <label className="text-xs font-medium text-foreground">
-                      Custom Device Path *
+                      Custom Block Device Node *
                     </label>
                     <Input
                       value={customDevice}

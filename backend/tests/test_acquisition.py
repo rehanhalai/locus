@@ -51,6 +51,10 @@ def test_acquisition_task_routes(client):
     assert tasks_res.status_code == 200
     assert isinstance(tasks_res.json(), list)
 
+    devices_res = client.get("/api/v1/acquisition/devices")
+    assert devices_res.status_code == 200
+    assert isinstance(devices_res.json(), list)
+
     not_found_res = client.get("/api/v1/acquisition/tasks/acq_nonexistent_9999")
     assert not_found_res.status_code == 404
 

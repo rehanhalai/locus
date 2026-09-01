@@ -3,6 +3,17 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+class BlockDeviceInfo(BaseModel):
+    name: str = Field(..., description="Device name, e.g. sdb")
+    path: str = Field(..., description="Device path, e.g. /dev/sdb")
+    size: str = Field(..., description="Human readable size, e.g. 500G")
+    size_bytes: int | None = Field(None, description="Size in bytes")
+    model: str | None = Field(None, description="Disk model string")
+    vendor: str | None = Field(None, description="Disk vendor string")
+    transport: str | None = Field(None, description="Transport bus, e.g. usb, sata, nvme")
+    removable: bool = Field(False, description="Whether device is removable media")
+
+
 class CloneRequest(BaseModel):
     case_id: str = Field(..., description="Target Case ID, e.g. case_bf70e664")
     source_device: str = Field(
