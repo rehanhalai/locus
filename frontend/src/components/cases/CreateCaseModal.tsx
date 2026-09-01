@@ -12,6 +12,7 @@ import {
 } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
 import { casesApi } from "../../api/cases";
 import { useCaseStore } from "../../stores/useCaseStore";
 import type { Case } from "../../types/case";
@@ -208,12 +209,13 @@ export function CreateCaseModal({ open, onOpenChange, onCaseCreated }: CreateCas
                 <label className="text-xs font-medium text-foreground">
                   Case Description & Notes (Optional)
                 </label>
-                <Input
+                <Textarea
                   value={field.state.value || ""}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
+                  rows={3}
                   placeholder="Brief synopsis of seized DVR/NVR hardware or incident timeline"
-                  className="text-xs"
+                  className="text-xs resize-none"
                 />
               </div>
             )}

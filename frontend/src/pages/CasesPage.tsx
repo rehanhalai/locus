@@ -14,17 +14,33 @@ import {
   Calendar,
   User,
   Film,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card";
 import { CreateCaseModal } from "../components/cases/CreateCaseModal";
 import { EvidenceIntakeModal } from "../components/cases/EvidenceIntakeModal";
+import { EditCaseModal } from "../components/cases/EditCaseModal";
+import { DeleteCaseModal } from "../components/cases/DeleteCaseModal";
 import { casesApi } from "../api/cases";
 import { useCaseStore } from "../stores/useCaseStore";
 import { queryClient } from "../lib/query-client";
 import type { Case, CaseStatus } from "../types/case";
 import { format } from "date-fns";
+
+const formatLocalDate = (dateStr?: string | null): string => {
+  if (!dateStr) return "N/A";
+  try {
+    const normalized = dateStr.endsWith("Z") || dateStr.includes("+") ? dateStr : `${dateStr}Z`;
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) return "N/A";
+    return format(d, "yyyy-MM-dd HH:mm");
+  } catch {
+    return "N/A";
+  }
+};
 
 export function CasesPage() {
   const navigate = useNavigate();
@@ -40,6 +56,8 @@ export function CasesPage() {
     id: string;
     caseNumber: string;
   } | null>(null);
+  const [editingCase, setEditingCase] = useState<Case | null>(null);
+  const [deletingCase, setDeletingCase] = useState<Case | null>(null);
 
   // TanStack Query for live case list
   const {
@@ -123,7 +141,7 @@ export function CasesPage() {
             onClick={() => setCreateModalOpen(true)}
             className="gap-2 shadow-md shadow-primary/20 font-semibold"
           >
-            <Plus className="size-4" />+ New Case Dossier
+            <Plus className="size-4" />New Case Dossier
           </Button>
         </div>
       </div>
@@ -309,17 +327,45 @@ export function CasesPage() {
                       )}
                     </div>
 
-                    <span
-                      className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
-                        c.status === "ACTIVE"
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : c.status === "ARCHIVED"
-                            ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                            : "bg-muted text-muted-foreground border-border"
-                      }`}
-                    >
-                      {c.status}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span
+                        className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
+                          c.status === "ACTIVE"
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            : c.status === "ARCHIVED"
+                              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                              : "bg-muted text-muted-foreground border-border"
+                        }`}
+                      >
+                        {c.status}
+                      </span>
+
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingCase(c);
+                        }}
+                        className="text-muted-foreground hover:text-foreground hover:bg-secondary size-7"
+                        title="Edit Case Dossier"
+                      >
+                        <Pencil className="size-3.5" />
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingCase(c);
+                        }}
+                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 size-7"
+                        title="Delete Case Dossier"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Metadata Chips */}
@@ -331,9 +377,7 @@ export function CasesPage() {
 
                     <div className="flex items-center gap-1.5">
                       <Calendar className="size-3.5" />
-                      <span>
-                        {c.created_at ? format(new Date(c.created_at), "yyyy-MM-dd HH:mm") : "N/A"}
-                      </span>
+                      <span>{formatLocalDate(c.created_at)}</span>
                     </div>
 
                     <div className="flex items-center gap-1.5">
@@ -376,6 +420,23 @@ export function CasesPage() {
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
         onCaseCreated={handleCaseCreated}
+      />
+
+      <EditCaseModal
+        open={!!editingCase}
+        onOpenChange={(open) => !open && setEditingCase(null)}
+        caseItem={editingCase}
+        onSuccess={() => refetch()}
+      />
+
+      <DeleteCaseModal
+        open={!!deletingCase}
+        onOpenChange={(open) => !open && setDeletingCase(null)}
+        caseItem={deletingCase}
+        onSuccess={() => {
+          refetch();
+          queryClient.invalidateQueries({ queryKey: ["cases"] });
+        }}
       />
 
       {targetCaseForIntake && (

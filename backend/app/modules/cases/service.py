@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy import or_
@@ -29,6 +30,7 @@ class CaseService:
 
         case_id = f"case_{uuid.uuid4().hex[:8]}"
         storage_path = cls._initialize_case_storage(case_id)
+        now_utc = datetime.now(UTC)
 
         new_case = Case(
             id=case_id,
@@ -38,6 +40,8 @@ class CaseService:
             description=payload.description.strip() if payload.description else None,
             status=CaseStatus.ACTIVE,
             storage_path=storage_path,
+            created_at=now_utc,
+            updated_at=now_utc,
         )
         db.add(new_case)
 
@@ -76,6 +80,14 @@ class CaseService:
 
         result = []
         for c in cases:
+            c_created = c.created_at
+            if c_created and c_created.tzinfo is None:
+                c_created = c_created.replace(tzinfo=UTC)
+
+            c_updated = c.updated_at
+            if c_updated and c_updated.tzinfo is None:
+                c_updated = c_updated.replace(tzinfo=UTC)
+
             c_dict = {
                 "id": c.id,
                 "case_number": c.case_number,
@@ -84,8 +96,8 @@ class CaseService:
                 "description": c.description,
                 "status": c.status,
                 "storage_path": c.storage_path,
-                "created_at": c.created_at,
-                "updated_at": c.updated_at,
+                "created_at": c_created,
+                "updated_at": c_updated,
                 "evidence_count": len(c.evidence_files) if c.evidence_files else 0,
             }
             result.append(c_dict)
@@ -105,6 +117,7 @@ class CaseService:
         if not case:
             raise KeyError(f"Case with ID '{case_id}' not found.")
 
+        case.updated_at = datetime.now(UTC)
         updated_fields = []
         if payload.case_name is not None:
             case.case_name = payload.case_name.strip()
