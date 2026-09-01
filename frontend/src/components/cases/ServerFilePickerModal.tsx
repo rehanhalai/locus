@@ -199,7 +199,7 @@ export function ServerFilePickerModal({
                 Supported Types
               </p>
               <div className="flex flex-wrap gap-1 mt-1.5">
-                {[".dd", ".raw", ".img", ".bin", ".iso", ".001", ".e01", ".vmdk", ".dav"].map(
+                {[".dd", ".raw", ".img", ".bin", ".iso", ".001", ".dav", ".mp4", ".h264"].map(
                   (ext) => (
                     <span
                       key={ext}

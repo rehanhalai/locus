@@ -34,7 +34,7 @@ import { useCaseStore } from "../../stores/useCaseStore";
 import { useNavigate } from "react-router-dom";
 import { ServerFilePickerModal } from "./ServerFilePickerModal";
 
-const ALLOWED_EXTENSIONS = [".dd", ".raw", ".img", ".bin", ".iso", ".001", ".e01", ".vmdk", ".vhd"];
+const ALLOWED_EXTENSIONS = [".dd", ".raw", ".img", ".bin", ".iso", ".001", ".dav", ".mp4", ".h264"];
 
 interface EvidenceIntakeModalProps {
   open: boolean;
@@ -376,7 +376,7 @@ export function EvidenceIntakeModal({
                   )}
 
                   <p className="text-[11px] text-muted-foreground">
-                    Supports bitstream disk dumps (.dd, .raw, .img, .bin, .iso, .001, .e01).
+                    Supports raw bitstream disk dumps (.dd, .raw, .img, .bin, .iso, .001, .dav).
                     Computes simultaneous SHA-256 + MD5.
                   </p>
                 </div>

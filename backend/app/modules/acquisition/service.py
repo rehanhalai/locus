@@ -516,13 +516,12 @@ class AcquisitionService:
             ".bin",
             ".iso",
             ".001",
-            ".e01",
-            ".vmdk",
-            ".vhd",
             ".dav",
             ".mp4",
             ".avi",
             ".mkv",
+            ".h264",
+            ".264",
         }
 
         # 1. Determine target directory
@@ -601,9 +600,9 @@ class AcquisitionService:
                             "extension": ext,
                         }
                     )
-                except PermissionError, FileNotFoundError:
+                except (PermissionError, FileNotFoundError):
                     continue
-        except PermissionError, FileNotFoundError:
+        except (PermissionError, FileNotFoundError):
             pass
 
         # 4. Generate OS shortcuts
