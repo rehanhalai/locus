@@ -3,6 +3,19 @@ import { subscribeSSE } from "../api/sse";
 import { useCaseStore } from "../stores/useCaseStore";
 import type { BackgroundTask } from "../types";
 
+interface SSEProgressData {
+  progress_percent?: number;
+  percentage?: number;
+  progress?: number;
+  speed_mbps?: number;
+  speed_mb_s?: number;
+  rate_mb_s?: number;
+  status?: string;
+  stage?: string;
+  message?: string;
+  status_message?: string;
+}
+
 export function useTaskSSE(
   taskId: string | null,
   taskType: BackgroundTask["type"],
@@ -11,7 +24,10 @@ export function useTaskSSE(
 ) {
   const addOrUpdateTask = useCaseStore((s) => s.addOrUpdateTask);
   const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     if (!taskId) return;
@@ -26,14 +42,14 @@ export function useTaskSSE(
       started_at: new Date().toISOString(),
     });
 
-    const unsubscribe = subscribeSSE(
+    const unsubscribe = subscribeSSE<SSEProgressData>(
       taskId.startsWith("/api") ? taskId : `/acquisition/stream/${taskId}`,
       {
-        onMessage: (data: any) => {
-          const percent = data.progress_percent || data.percentage || data.progress || 0;
-          const speed = data.speed_mbps || data.speed_mb_s || data.rate_mb_s || 0;
-          const status = data.status || data.stage || "PROCESSING";
-          const message = data.message || data.status_message || "";
+        onMessage: (data) => {
+          const percent = data.progress_percent ?? data.percentage ?? data.progress ?? 0;
+          const speed = data.speed_mbps ?? data.speed_mb_s ?? data.rate_mb_s ?? 0;
+          const status = data.status ?? data.stage ?? "PROCESSING";
+          const message = data.message ?? data.status_message ?? "";
 
           addOrUpdateTask({
             task_id: taskId,
