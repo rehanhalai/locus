@@ -1,78 +1,271 @@
+import { useState, useMemo, useEffect } from "react";
 import {
-  Camera,
-  Play,
-  Pause,
+  Grid2X2,
+  LayoutTemplate,
+  Square,
+  Radio,
+  FolderOpen,
+  RefreshCw,
+  HardDrive,
   SkipBack,
   SkipForward,
+  Play,
+  Pause,
   SlidersHorizontal,
-  Maximize2,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
 import { useCaseStore } from "../stores/useCaseStore";
+import { CameraTile } from "../components/player/CameraTile";
+import { useQuery } from "@tanstack/react-query";
+import { casesApi } from "../api/cases";
+import { videoApi } from "../api/video";
+import { useNavigate } from "react-router-dom";
+import type { CarvedClip } from "../types/video";
+
+type LayoutMode = "GRID_2X2" | "FOCUS_1X3" | "SINGLE";
+
+const DEFAULT_CAMERA_LABELS: Record<number, string> = {
+  1: "Main Entrance",
+  2: "Cash Counter",
+  3: "Vault Area",
+  4: "Street Perimeter",
+};
 
 export function InvestigatePage() {
+  const navigate = useNavigate();
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("GRID_2X2");
+
+  const activeCaseId = useCaseStore((s) => s.activeCaseId);
+  const activeCaseNumber = useCaseStore((s) => s.activeCaseNumber);
+  const activeCaseName = useCaseStore((s) => s.activeCaseName);
+  const activeEvidenceId = useCaseStore((s) => s.activeEvidenceId);
+  const setActiveEvidenceId = useCaseStore((s) => s.setActiveEvidenceId);
+  const focusedCameraId = useCaseStore((s) => s.focusedCameraId);
+  const setFocusedCameraId = useCaseStore((s) => s.setFocusedCameraId);
+
   const isPlaying = useCaseStore((s) => s.isPlaying);
   const togglePlay = useCaseStore((s) => s.togglePlay);
   const stepFrame = useCaseStore((s) => s.stepFrame);
   const masterPlayheadTime = useCaseStore((s) => s.masterPlayheadTime);
 
+  // 1. Fetch case details to find attached evidence
+  const { data: caseDetails } = useQuery({
+    queryKey: ["case", activeCaseId],
+    queryFn: () => (activeCaseId ? casesApi.getCase(activeCaseId) : null),
+    enabled: !!activeCaseId,
+  });
+
+  // Auto-select first evidence file if not yet active
+  useEffect(() => {
+    if (caseDetails?.evidence_files && caseDetails.evidence_files.length > 0) {
+      if (!activeEvidenceId) {
+        setActiveEvidenceId(caseDetails.evidence_files[0].id);
+      }
+    }
+  }, [caseDetails, activeEvidenceId, setActiveEvidenceId]);
+
+  // 2. Fetch carved clips for active evidence
+  const {
+    data: carvedData,
+    isLoading: isClipsLoading,
+    refetch: refetchClips,
+  } = useQuery({
+    queryKey: ["carved-clips", activeEvidenceId],
+    queryFn: () => (activeEvidenceId ? videoApi.getCarvedClips(activeEvidenceId) : null),
+    enabled: !!activeEvidenceId,
+  });
+
+  // Map clips to camera channel IDs
+  const cameraClipsMap = useMemo(() => {
+    const map: Record<number, CarvedClip> = {};
+    if (carvedData?.clips) {
+      carvedData.clips.forEach((clip) => {
+        // If multiple clips exist for a camera, store the latest or first
+        if (!map[clip.camera_id]) {
+          map[clip.camera_id] = clip;
+        }
+      });
+    }
+    return map;
+  }, [carvedData]);
+
+  const activeClipsCount = Object.keys(cameraClipsMap).length;
+
+  const handleTileFocusToggle = (camId: number) => {
+    if (focusedCameraId === camId) {
+      setFocusedCameraId(null);
+      if (layoutMode === "SINGLE") {
+        setLayoutMode("GRID_2X2");
+      }
+    } else {
+      setFocusedCameraId(camId);
+      if (layoutMode === "GRID_2X2") {
+        setLayoutMode("FOCUS_1X3");
+      }
+    }
+  };
+
+  const primaryCamId = focusedCameraId || 1;
+  const secondaryCamIds = [1, 2, 3, 4].filter((id) => id !== primaryCamId);
+
+  // If no case is selected, prompt investigator
+  if (!activeCaseId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-4 bg-background select-none">
+        <div className="p-4 rounded-2xl bg-secondary/40 border border-border">
+          <FolderOpen className="size-12 text-primary" />
+        </div>
+        <div className="max-w-md space-y-1.5">
+          <h2 className="text-xl font-bold tracking-tight">No Active Forensic Dossier</h2>
+          <p className="text-xs text-muted-foreground">
+            Please open an existing investigation case from Case Hub to analyze multi-camera feeds
+            and synchronized timelines.
+          </p>
+        </div>
+        <Button onClick={() => navigate("/cases")} className="gap-2">
+          <HardDrive className="size-4" />
+          Open Case Hub [Hotkey: 0]
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
-      {/* 2x2 Multi-Cam Synchronized Grid */}
-      <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-2 p-3 min-h-0">
-        {[1, 2, 3, 4].map((camId) => (
-          <div
-            key={camId}
-            className="relative rounded-xl bg-card border border-border overflow-hidden flex flex-col justify-between p-3 group"
+      {/* Investigation Room Sub-Header */}
+      <div className="h-12 border-b border-border/80 bg-card/60 backdrop-blur-md px-4 flex items-center justify-between gap-4 shrink-0">
+        {/* Left: Case Info & Live Signal Badge */}
+        <div className="flex items-center gap-3 min-w-0">
+          <Badge
+            variant="outline"
+            className="font-mono text-[11px] bg-primary/10 border-primary/30 text-primary shrink-0"
           >
-            {/* Tile Top Header */}
-            <div className="flex items-center justify-between z-10">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded bg-primary/20 text-primary text-xs font-mono font-bold">
-                  CH {camId}
-                </span>
-                <span className="text-xs text-muted-foreground font-medium">
-                  {camId === 1
-                    ? "Main Entrance"
-                    : camId === 2
-                      ? "Cash Counter"
-                      : camId === 3
-                        ? "Vault Area"
-                        : "Street Corner"}
-                </span>
-              </div>
+            {activeCaseNumber || activeCaseId.slice(0, 8)}
+          </Badge>
+          <span className="text-xs font-semibold truncate text-foreground/90">
+            {activeCaseName || "Forensic Incident Review"}
+          </span>
 
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon-xs" title="Maximize View">
-                  <Maximize2 className="size-3.5" />
-                </Button>
-              </div>
-            </div>
+          <div className="h-4 w-[1px] bg-border hidden sm:block" />
 
-            {/* Video Canvas / Placeholder Screen */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-              <div className="text-center space-y-1">
-                <Camera className="size-8 text-muted-foreground/30 mx-auto" />
-                <p className="text-xs font-mono text-muted-foreground/70">
-                  CAMERA {camId} STREAM SYNCED
-                </p>
-                <p className="text-[10px] font-mono text-primary/80">
-                  {masterPlayheadTime.slice(11, 23)} UTC
-                </p>
-              </div>
-            </div>
-
-            {/* Tile Bottom HUD */}
-            <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground z-10 bg-background/60 backdrop-blur-xs px-2 py-1 rounded-md border border-border/40">
-              <span>Sector: 0x00A4000</span>
-              <span className="text-emerald-400">1080p @ 25fps</span>
-            </div>
+          <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground">
+            <Radio className="size-3 text-emerald-400 animate-pulse" />
+            <span>{activeClipsCount} / 4 Channels Online</span>
           </div>
-        ))}
+        </div>
+
+        {/* Right: Layout Mode Switchers & Refresh */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border">
+            <Button
+              variant={layoutMode === "GRID_2X2" ? "default" : "ghost"}
+              size="icon-xs"
+              onClick={() => {
+                setLayoutMode("GRID_2X2");
+                setFocusedCameraId(null);
+              }}
+              title="2x2 Multi-Cam Grid Layout"
+            >
+              <Grid2X2 className="size-3.5" />
+            </Button>
+            <Button
+              variant={layoutMode === "FOCUS_1X3" ? "default" : "ghost"}
+              size="icon-xs"
+              onClick={() => {
+                setLayoutMode("FOCUS_1X3");
+                if (!focusedCameraId) setFocusedCameraId(1);
+              }}
+              title="1+3 Focus Layout"
+            >
+              <LayoutTemplate className="size-3.5" />
+            </Button>
+            <Button
+              variant={layoutMode === "SINGLE" ? "default" : "ghost"}
+              size="icon-xs"
+              onClick={() => {
+                setLayoutMode("SINGLE");
+                if (!focusedCameraId) setFocusedCameraId(1);
+              }}
+              title="Single Full-View Layout"
+            >
+              <Square className="size-3.5" />
+            </Button>
+          </div>
+
+          <Button
+            variant="outline"
+            size="icon-xs"
+            onClick={() => refetchClips()}
+            title="Refresh Video Feeds"
+          >
+            <RefreshCw className={`size-3.5 ${isClipsLoading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
 
-      {/* Unified Master Timeline Scrubber Bar */}
-      <div className="h-20 border-t border-border bg-card/80 backdrop-blur-md px-6 flex flex-col justify-center space-y-2 select-none">
+      {/* Main Multi-Cam Viewport Grid */}
+      <div className="flex-1 p-2.5 min-h-0 overflow-hidden bg-black/40">
+        {layoutMode === "GRID_2X2" && (
+          <div className="grid grid-cols-2 grid-rows-2 gap-2.5 h-full w-full">
+            {[1, 2, 3, 4].map((camId) => (
+              <CameraTile
+                key={camId}
+                cameraId={camId}
+                channelName={DEFAULT_CAMERA_LABELS[camId] || `Camera ${camId}`}
+                clip={cameraClipsMap[camId] || null}
+                isFocused={focusedCameraId === camId}
+                onToggleFocus={() => handleTileFocusToggle(camId)}
+              />
+            ))}
+          </div>
+        )}
+
+        {layoutMode === "FOCUS_1X3" && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 h-full w-full">
+            {/* Main Primary View (2 Columns) */}
+            <div className="md:col-span-2 h-full">
+              <CameraTile
+                cameraId={primaryCamId}
+                channelName={DEFAULT_CAMERA_LABELS[primaryCamId] || `Camera ${primaryCamId}`}
+                clip={cameraClipsMap[primaryCamId] || null}
+                isFocused={true}
+                onToggleFocus={() => handleTileFocusToggle(primaryCamId)}
+              />
+            </div>
+
+            {/* Side Thumbnail Feeds (1 Column Stack) */}
+            <div className="flex flex-col gap-2.5 h-full overflow-hidden">
+              {secondaryCamIds.map((camId) => (
+                <div key={camId} className="flex-1 min-h-0">
+                  <CameraTile
+                    cameraId={camId}
+                    channelName={DEFAULT_CAMERA_LABELS[camId] || `Camera ${camId}`}
+                    clip={cameraClipsMap[camId] || null}
+                    isFocused={false}
+                    onToggleFocus={() => handleTileFocusToggle(camId)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {layoutMode === "SINGLE" && (
+          <div className="h-full w-full">
+            <CameraTile
+              cameraId={primaryCamId}
+              channelName={DEFAULT_CAMERA_LABELS[primaryCamId] || `Camera ${primaryCamId}`}
+              clip={cameraClipsMap[primaryCamId] || null}
+              isFocused={true}
+              onToggleFocus={() => handleTileFocusToggle(primaryCamId)}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Master Timeline Scrubber & Transport Bar */}
+      <div className="h-20 border-t border-border bg-card/80 backdrop-blur-md px-6 flex flex-col justify-center space-y-2 select-none shrink-0">
         {/* Playhead Slider Track */}
         <div className="flex items-center gap-4 text-xs font-mono text-muted-foreground">
           <span>14:00:00 UTC</span>
