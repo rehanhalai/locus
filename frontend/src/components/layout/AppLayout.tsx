@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
-import { Sidebar } from "./Sidebar";
+import { SidebarProvider, SidebarInset } from "../ui/sidebar";
+import { AppSidebar } from "./AppSidebar";
 import { Topbar } from "./Topbar";
 import { TaskDrawer } from "./TaskDrawer";
 import { useHotkeys } from "../../hooks/useHotkeys";
@@ -9,23 +10,25 @@ export function AppLayout() {
   useHotkeys();
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground select-none">
-      {/* 64px Command Rail Sidebar */}
-      <Sidebar />
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground select-none">
+        {/* Collapsible Shadcn Forensic Sidebar */}
+        <AppSidebar />
 
-      {/* Main Content Column */}
-      <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
-        {/* Topbar with Master Clock & Case Badge */}
-        <Topbar />
+        {/* Main Content Column */}
+        <SidebarInset className="flex flex-col flex-1 min-w-0 h-full overflow-hidden bg-background">
+          {/* Topbar with Sidebar Trigger, Master Clock & Case Badge */}
+          <Topbar />
 
-        {/* Dynamic Route Canvas (Rooms 1-4 or Cases Hub) */}
-        <main className="flex-1 min-w-0 overflow-y-auto relative bg-background/50">
-          <Outlet />
-        </main>
+          {/* Dynamic Route Canvas (Rooms 1-4 or Cases Hub) */}
+          <main className="flex-1 min-w-0 overflow-y-auto relative bg-background/50">
+            <Outlet />
+          </main>
+        </SidebarInset>
+
+        {/* Slide-over Background Pipeline Tracker */}
+        <TaskDrawer />
       </div>
-
-      {/* Slide-over Background Pipeline Tracker */}
-      <TaskDrawer />
-    </div>
+    </SidebarProvider>
   );
 }
