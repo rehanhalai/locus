@@ -46,7 +46,6 @@ export function CasesPage() {
   const navigate = useNavigate();
   const activeCaseId = useCaseStore((s) => s.activeCaseId);
   const setActiveCase = useCaseStore((s) => s.setActiveCase);
-  const setActiveEvidenceId = useCaseStore((s) => s.setActiveEvidenceId);
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<CaseStatus | "ALL">("ALL");
@@ -82,9 +81,6 @@ export function CasesPage() {
 
   const handleOpenCase = (c: Case) => {
     setActiveCase(c.id, c.case_number, c.case_name);
-    if (c.evidence_files && c.evidence_files.length > 0) {
-      setActiveEvidenceId(c.evidence_files[0].id);
-    }
     navigate("/investigate");
   };
 
@@ -297,7 +293,7 @@ export function CasesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredCases.map((c) => {
               const isCurrentActive = c.id === activeCaseId;
-              const evidenceFiles = c.evidence_files || [];
+              const evidenceCount = c.evidence_count ?? 0;
 
               return (
                 <div
@@ -384,7 +380,7 @@ export function CasesPage() {
                     <div className="flex items-center gap-1.5">
                       <Film className="size-3.5 text-cyan-400" />
                       <span>
-                        {evidenceFiles.length} Evidence File{evidenceFiles.length === 1 ? "" : "s"}
+                        {evidenceCount} Evidence File{evidenceCount === 1 ? "" : "s"}
                       </span>
                     </div>
                   </div>

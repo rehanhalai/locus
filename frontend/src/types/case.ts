@@ -37,7 +37,7 @@ export interface Case {
   created_at: string;
   updated_at: string;
   evidence_count?: number;
-  evidence_files?: EvidenceFile[];
+  // evidence_files?: EvidenceFile[];
   audit_logs?: AuditLog[];
 }
 
