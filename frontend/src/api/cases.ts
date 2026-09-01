@@ -5,6 +5,7 @@ import type {
   CaseCreatePayload,
   CaseStatus,
   CaseUpdatePayload,
+  FsBrowseResponse,
 } from "../types/case";
 
 export const casesApi = {
@@ -39,6 +40,9 @@ export const casesApi = {
     ),
 
   listDevices: () => api.get<BlockDeviceInfo[]>("/acquisition/devices"),
+
+  browseFilesystem: (path?: string) =>
+    api.get<FsBrowseResponse>("/acquisition/browse-fs", path ? { path } : undefined),
 
   getAcquisitionTasks: () =>
     api.get<

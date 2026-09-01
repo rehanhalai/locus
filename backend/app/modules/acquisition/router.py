@@ -8,6 +8,7 @@ from app.modules.acquisition.schemas import (
     BlockDeviceInfo,
     CloneRequest,
     CloneResponse,
+    FsBrowseResponse,
     IngestFileRequest,
     IngestFileResponse,
     TaskResponse,
@@ -106,4 +107,11 @@ def get_task_status(task_id: str):
 def list_available_block_devices():
     """List physical, SATA, USB, and NVMe block storage devices attached to the host system."""
     return AcquisitionService.list_block_devices()
+
+
+@router.get("/browse-fs", response_model=FsBrowseResponse)
+def browse_local_filesystem(path: str | None = None):
+    """Explores the local forensic workstation filesystem to select disk images directly."""
+    return AcquisitionService.browse_filesystem(path=path)
+
 

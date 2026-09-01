@@ -1,5 +1,6 @@
 import asyncio
 import os
+import platform
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -513,3 +514,127 @@ class AcquisitionService:
                     pass
 
         return devices
+
+    @classmethod
+    def browse_filesystem(cls, path: str | None = None) -> dict[str, Any]:
+        """Explores local server filesystem directories and files for forensic image discovery."""
+        forensic_exts = {
+            ".dd",
+            ".raw",
+            ".img",
+            ".bin",
+            ".iso",
+            ".001",
+            ".e01",
+            ".vmdk",
+            ".vhd",
+            ".dav",
+            ".mp4",
+            ".avi",
+            ".mkv",
+        }
+
+        # 1. Determine target directory
+        if path and path.strip():
+            target_path = Path(path.strip()).resolve()
+            if target_path.is_file():
+                target_path = target_path.parent
+            if not target_path.exists():
+                target_path = Path.cwd().resolve()
+        else:
+            # Check default workspace data locations
+            candidate_default = (Path.cwd() / "data").resolve()
+            candidate_parent = (Path.cwd().parent / "data").resolve()
+            if candidate_default.is_dir():
+                target_path = candidate_default
+            elif candidate_parent.is_dir():
+                target_path = candidate_parent
+            else:
+                target_path = Path.cwd().resolve()
+
+        # 2. Determine parent directory
+        parent_path = str(target_path.parent) if target_path.parent != target_path else None
+
+        # 3. Read directory entries
+        entries = []
+        try:
+            for item in sorted(target_path.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
+                # Skip hidden dotfiles and node_modules/venv
+                if item.name.startswith(".") or item.name in ("node_modules", ".venv", "__pycache__"):
+                    continue
+
+                try:
+                    is_directory = item.is_dir()
+                    ext = item.suffix.lower() if not is_directory else None
+                    is_forensic = ext in forensic_exts if ext else False
+
+                    size_str = None
+                    size_bytes = None
+                    mod_time_str = None
+
+                    stat = item.stat()
+                    mod_time_str = datetime.fromtimestamp(stat.st_mtime, tz=UTC).strftime("%Y-%m-%d %H:%M")
+
+                    if not is_directory:
+                        size_bytes = stat.st_size
+                        gb = size_bytes / (1024**3)
+                        mb = size_bytes / (1024**2)
+                        kb = size_bytes / 1024
+                        size_str = (
+                            f"{gb:.1f} GB"
+                            if gb >= 1
+                            else f"{mb:.1f} MB"
+                            if mb >= 1
+                            else f"{kb:.1f} KB"
+                            if kb >= 1
+                            else f"{size_bytes} B"
+                        )
+
+                    entries.append(
+                        {
+                            "name": item.name,
+                            "path": str(item.resolve()),
+                            "is_dir": is_directory,
+                            "size": size_str,
+                            "size_bytes": size_bytes,
+                            "modified_at": mod_time_str,
+                            "is_forensic": is_forensic,
+                            "extension": ext,
+                        }
+                    )
+                except (PermissionError, FileNotFoundError):
+                    continue
+        except (PermissionError, FileNotFoundError):
+            pass
+
+        # 4. Generate OS shortcuts
+        shortcuts = []
+        data_dir = (Path.cwd() / "data").resolve()
+        if not data_dir.is_dir():
+            data_dir = (Path.cwd().parent / "data").resolve()
+        if data_dir.is_dir():
+            shortcuts.append({"name": "⭐ Workspace Data", "path": str(data_dir), "icon_type": "workspace"})
+
+        shortcuts.append({"name": "🏠 Home", "path": str(Path.home().resolve()), "icon_type": "home"})
+
+        os_type = platform.system()
+        if os_type == "Windows":
+            import string
+
+            for letter in string.ascii_uppercase:
+                drive = f"{letter}:\\"
+                if Path(drive).exists():
+                    shortcuts.append({"name": f"💾 Drive {letter}:", "path": drive, "icon_type": "drive"})
+        else:
+            shortcuts.append({"name": "💾 Root (/)", "path": "/", "icon_type": "root"})
+            for mount in ["/media", "/mnt"]:
+                if Path(mount).is_dir():
+                    shortcuts.append({"name": f"🔌 {mount}", "path": mount, "icon_type": "mount"})
+
+        return {
+            "current_path": str(target_path),
+            "parent_path": parent_path,
+            "entries": entries,
+            "shortcuts": shortcuts,
+        }
+

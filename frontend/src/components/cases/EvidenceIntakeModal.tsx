@@ -32,6 +32,7 @@ import { casesApi } from "../../api/cases";
 import { subscribeSSE } from "../../api/sse";
 import { useCaseStore } from "../../stores/useCaseStore";
 import { useNavigate } from "react-router-dom";
+import { ServerFilePickerModal } from "./ServerFilePickerModal";
 
 const ALLOWED_EXTENSIONS = [".dd", ".raw", ".img", ".bin", ".iso", ".001", ".e01", ".vmdk", ".vhd"];
 
@@ -78,6 +79,7 @@ export function EvidenceIntakeModal({
   const [filePath, setFilePath] = useState<string>("");
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [selectedFileSize, setSelectedFileSize] = useState<string | null>(null);
+  const [explorerOpen, setExplorerOpen] = useState<boolean>(false);
 
   const [sourceDevice, setSourceDevice] = useState<string>("");
   const [customDevice, setCustomDevice] = useState<string>("");
@@ -342,24 +344,24 @@ export function EvidenceIntakeModal({
                         setFilePath(e.target.value);
                         setSelectedFileName(null);
                       }}
-                      placeholder="e.g. /data/evidence/dahua_dvr_raw.dd"
+                      placeholder="e.g. /evidence/cases/cctv_dump_raw.dd"
                       className="font-mono text-xs flex-1"
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="gap-1.5 shrink-0 text-xs"
+                      onClick={() => setExplorerOpen(true)}
+                      className="gap-1.5 shrink-0 text-xs font-medium border-primary/30 hover:border-primary text-foreground"
                     >
-                      <FolderSearch className="size-3.5" />
-                      Browse...
+                      <FolderSearch className="size-3.5 text-primary" />
+                      Browse Machine...
                     </Button>
                   </div>
 
                   {selectedFileName && (
                     <div className="p-2 rounded bg-secondary/50 border border-border text-[11px] font-mono flex items-center justify-between">
-                      <span className="text-primary truncate">{selectedFileName}</span>
+                      <span className="text-primary font-bold truncate">{selectedFileName}</span>
                       <span className="text-muted-foreground shrink-0">{selectedFileSize}</span>
                     </div>
                   )}
@@ -553,6 +555,17 @@ export function EvidenceIntakeModal({
           </div>
         )}
       </DialogContent>
+
+      <ServerFilePickerModal
+        open={explorerOpen}
+        onOpenChange={setExplorerOpen}
+        onSelect={(selectedPath, size) => {
+          setFilePath(selectedPath);
+          setSelectedFileName(selectedPath.split("/").pop() || selectedPath);
+          setSelectedFileSize(size || null);
+          setApiError(null);
+        }}
+      />
     </Dialog>
   );
 }

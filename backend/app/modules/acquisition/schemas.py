@@ -60,3 +60,28 @@ class IngestFileResponse(BaseModel):
     status: str
     case_id: str
     file_path: str
+
+
+class FsEntry(BaseModel):
+    name: str = Field(..., description="File or folder name")
+    path: str = Field(..., description="Absolute filesystem path")
+    is_dir: bool = Field(..., description="True if directory, False if file")
+    size: str | None = Field(None, description="Formatted size, e.g. 10.0 MB")
+    size_bytes: int | None = Field(None, description="Raw file size in bytes")
+    modified_at: str | None = Field(None, description="ISO modified timestamp")
+    is_forensic: bool = Field(False, description="True if supported forensic image format")
+    extension: str | None = Field(None, description="File extension with dot, e.g. .dd")
+
+
+class FsBrowseShortcut(BaseModel):
+    name: str
+    path: str
+    icon_type: str = "folder"
+
+
+class FsBrowseResponse(BaseModel):
+    current_path: str
+    parent_path: str | None = None
+    entries: list[FsEntry]
+    shortcuts: list[FsBrowseShortcut]
+
