@@ -7,7 +7,7 @@ export interface SSEOptions<T = unknown> {
 }
 
 /**
- * Subscribes to an SSE endpoint using EventSource with automatic cleanup.
+ * Subscribes to an SSE endpoint using EventSource with robust error extraction and auto-cleanup.
  */
 export function subscribeSSE<T = Record<string, unknown>>(
   endpoint: string,
@@ -15,41 +15,76 @@ export function subscribeSSE<T = Record<string, unknown>>(
 ): () => void {
   const url = endpoint.startsWith("http") ? endpoint : `${BASE_URL}${endpoint}`;
   const eventSource = new EventSource(url);
+  let isClosed = false;
+
+  const closeStream = () => {
+    if (!isClosed) {
+      isClosed = true;
+      eventSource.close();
+    }
+  };
 
   eventSource.onmessage = (event) => {
     try {
       const parsed = JSON.parse(event.data) as T;
       options.onMessage(parsed);
 
-      const status =
-        (parsed as { status?: string; stage?: string }).status ||
-        (parsed as { status?: string; stage?: string }).stage;
+      if (typeof parsed === "object" && parsed !== null) {
+        const obj = parsed as Record<string, unknown>;
+        const eventType = String(obj.type || "");
+        const status = String(obj.status || obj.stage || "");
+        const exitCode = typeof obj.exit_code === "number" ? obj.exit_code : undefined;
 
-      if (
-        status === "DONE" ||
-        status === "COMPLETED" ||
-        status === "FAILED" ||
-        status === "ERROR"
-      ) {
-        eventSource.close();
-        if (options.onComplete) {
-          options.onComplete();
+        // Check for error/failure payload
+        const isFailed =
+          eventType === "FAILED" ||
+          eventType === "ERROR" ||
+          status === "FAILED" ||
+          status === "ERROR" ||
+          (exitCode !== undefined && exitCode !== 0);
+
+        if (isFailed) {
+          closeStream();
+          const errorMsg =
+            String(obj.error || obj.message || obj.detail || "") ||
+            (exitCode !== undefined
+              ? `Process failed with exit code ${exitCode}`
+              : "Background task failed.");
+          if (options.onError) {
+            options.onError(new Error(errorMsg));
+          }
+          return;
+        }
+
+        // Check for successful completion
+        const isCompleted =
+          eventType === "DONE" ||
+          eventType === "COMPLETED" ||
+          status === "DONE" ||
+          status === "COMPLETED";
+
+        if (isCompleted) {
+          closeStream();
+          if (options.onComplete) {
+            options.onComplete();
+          }
         }
       }
     } catch {
-      // Non-JSON raw event
+      // Raw string event
       options.onMessage(event.data as unknown as T);
     }
   };
 
   eventSource.onerror = () => {
-    eventSource.close();
+    if (isClosed) return;
+    closeStream();
     if (options.onError) {
-      options.onError(new Error("SSE connection failed or stream terminated"));
+      options.onError(new Error("SSE stream terminated or process encountered an error."));
     }
   };
 
   return () => {
-    eventSource.close();
+    closeStream();
   };
 }
