@@ -106,7 +106,7 @@ export function CasesPage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-200">
+    <div className="p-6 md:p-8 w-full space-y-6 animate-in fade-in duration-200">
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -290,7 +290,7 @@ export function CasesPage() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(340px,1fr))] gap-4">
             {filteredCases.map((c) => {
               const isCurrentActive = c.id === activeCaseId;
               const evidenceCount = c.evidence_count ?? 0;
