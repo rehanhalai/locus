@@ -17,7 +17,7 @@ export function Topbar() {
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
-      setUtcTime(format(now, "yyyy-MM-dd HH:mm:ss") + " UTC");
+      setUtcTime(format(now, "yyyy-MM-dd hh:mm:ss a"));
     };
     updateClock();
     const timer = setInterval(updateClock, 1000);
