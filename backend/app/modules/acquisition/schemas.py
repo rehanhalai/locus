@@ -84,4 +84,3 @@ class FsBrowseResponse(BaseModel):
     parent_path: str | None = None
     entries: list[FsEntry]
     shortcuts: list[FsBrowseShortcut]
-

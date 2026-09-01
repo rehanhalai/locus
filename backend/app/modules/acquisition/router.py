@@ -113,5 +113,3 @@ def list_available_block_devices():
 def browse_local_filesystem(path: str | None = None):
     """Explores the local forensic workstation filesystem to select disk images directly."""
     return AcquisitionService.browse_filesystem(path=path)
-
-

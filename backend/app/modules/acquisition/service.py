@@ -313,9 +313,7 @@ class AcquisitionService:
                             continue
                         idx = item.get("Index")
                         clean_name = (
-                            f"PhysicalDrive{idx}"
-                            if idx is not None
-                            else dev_id.split("\\")[-1]
+                            f"PhysicalDrive{idx}" if idx is not None else dev_id.split("\\")[-1]
                         )
                         norm_path = f"\\\\.\\{clean_name}"
 
@@ -324,18 +322,14 @@ class AcquisitionService:
                         if size_bytes and isinstance(size_bytes, (int, float)):
                             gb = size_bytes / (1024**3)
                             size_str = (
-                                f"{gb:.1f} GB"
-                                if gb >= 1
-                                else f"{size_bytes / (1024**2):.1f} MB"
+                                f"{gb:.1f} GB" if gb >= 1 else f"{size_bytes / (1024**2):.1f} MB"
                             )
 
                         model = str(item.get("Model") or "").strip() or None
                         iface = str(item.get("InterfaceType") or "").strip() or None
                         media_type = str(item.get("MediaType") or "").lower()
                         is_removable = (
-                            "removable" in media_type
-                            or "external" in media_type
-                            or iface == "USB"
+                            "removable" in media_type or "external" in media_type or iface == "USB"
                         )
 
                         devices.append(
@@ -397,12 +391,9 @@ class AcquisitionService:
                                         "model": d_info.get("MediaName"),
                                         "vendor": d_info.get("DeviceVendor"),
                                         "transport": (
-                                            d_info.get("BusProtocol", "").lower()
-                                            or None
+                                            d_info.get("BusProtocol", "").lower() or None
                                         ),
-                                        "removable": d_info.get(
-                                            "RemovableMedia", False
-                                        ),
+                                        "removable": d_info.get("RemovableMedia", False),
                                     }
                                 )
                     if devices:
@@ -558,9 +549,15 @@ class AcquisitionService:
         # 3. Read directory entries
         entries = []
         try:
-            for item in sorted(target_path.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
+            for item in sorted(
+                target_path.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())
+            ):
                 # Skip hidden dotfiles and node_modules/venv
-                if item.name.startswith(".") or item.name in ("node_modules", ".venv", "__pycache__"):
+                if item.name.startswith(".") or item.name in (
+                    "node_modules",
+                    ".venv",
+                    "__pycache__",
+                ):
                     continue
 
                 try:
@@ -573,7 +570,9 @@ class AcquisitionService:
                     mod_time_str = None
 
                     stat = item.stat()
-                    mod_time_str = datetime.fromtimestamp(stat.st_mtime, tz=UTC).strftime("%Y-%m-%d %H:%M")
+                    mod_time_str = datetime.fromtimestamp(stat.st_mtime, tz=UTC).strftime(
+                        "%Y-%m-%d %H:%M"
+                    )
 
                     if not is_directory:
                         size_bytes = stat.st_size
@@ -602,9 +601,9 @@ class AcquisitionService:
                             "extension": ext,
                         }
                     )
-                except (PermissionError, FileNotFoundError):
+                except PermissionError, FileNotFoundError:
                     continue
-        except (PermissionError, FileNotFoundError):
+        except PermissionError, FileNotFoundError:
             pass
 
         # 4. Generate OS shortcuts
@@ -613,9 +612,13 @@ class AcquisitionService:
         if not data_dir.is_dir():
             data_dir = (Path.cwd().parent / "data").resolve()
         if data_dir.is_dir():
-            shortcuts.append({"name": "⭐ Workspace Data", "path": str(data_dir), "icon_type": "workspace"})
+            shortcuts.append(
+                {"name": "⭐ Workspace Data", "path": str(data_dir), "icon_type": "workspace"}
+            )
 
-        shortcuts.append({"name": "🏠 Home", "path": str(Path.home().resolve()), "icon_type": "home"})
+        shortcuts.append(
+            {"name": "🏠 Home", "path": str(Path.home().resolve()), "icon_type": "home"}
+        )
 
         os_type = platform.system()
         if os_type == "Windows":
@@ -624,7 +627,9 @@ class AcquisitionService:
             for letter in string.ascii_uppercase:
                 drive = f"{letter}:\\"
                 if Path(drive).exists():
-                    shortcuts.append({"name": f"💾 Drive {letter}:", "path": drive, "icon_type": "drive"})
+                    shortcuts.append(
+                        {"name": f"💾 Drive {letter}:", "path": drive, "icon_type": "drive"}
+                    )
         else:
             shortcuts.append({"name": "💾 Root (/)", "path": "/", "icon_type": "root"})
             for mount in ["/media", "/mnt"]:
@@ -637,4 +642,3 @@ class AcquisitionService:
             "entries": entries,
             "shortcuts": shortcuts,
         }
-
