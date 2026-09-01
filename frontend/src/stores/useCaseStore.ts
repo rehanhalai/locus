@@ -17,6 +17,8 @@ interface CaseStoreState {
   playbackSpeed: number;
   timelineStart: string;
   timelineEnd: string;
+  focusedCameraId: number | null;
+  cameraOffsets: Record<number, number>; // camera_id -> offset in seconds
 
   // Actions
   setActiveCase: (caseId: string | null, caseNumber?: string, caseName?: string) => void;
@@ -25,6 +27,8 @@ interface CaseStoreState {
   setTaskDrawerOpen: (open: boolean) => void;
   toggleTaskDrawer: () => void;
   setInvestigatorName: (name: string) => void;
+  setFocusedCameraId: (camId: number | null) => void;
+  setCameraOffset: (camId: number, offsetSeconds: number) => void;
 
   // Task actions
   addOrUpdateTask: (task: BackgroundTask) => void;
@@ -54,6 +58,8 @@ export const useCaseStore = create<CaseStoreState>((set, get) => ({
   playbackSpeed: 1,
   timelineStart: new Date(Date.now() - 3600 * 1000).toISOString(),
   timelineEnd: new Date().toISOString(),
+  focusedCameraId: null,
+  cameraOffsets: {},
 
   setActiveCase: (caseId, caseNumber, caseName) =>
     set({
@@ -67,6 +73,11 @@ export const useCaseStore = create<CaseStoreState>((set, get) => ({
   setTaskDrawerOpen: (open) => set({ taskDrawerOpen: open }),
   toggleTaskDrawer: () => set((state) => ({ taskDrawerOpen: !state.taskDrawerOpen })),
   setInvestigatorName: (name) => set({ investigatorName: name }),
+  setFocusedCameraId: (camId) => set({ focusedCameraId: camId }),
+  setCameraOffset: (camId, offsetSeconds) =>
+    set((state) => ({
+      cameraOffsets: { ...state.cameraOffsets, [camId]: offsetSeconds },
+    })),
 
   addOrUpdateTask: (task) =>
     set((state) => {
