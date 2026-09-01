@@ -141,7 +141,8 @@ export function CasesPage() {
             onClick={() => setCreateModalOpen(true)}
             className="gap-2 shadow-md shadow-primary/20 font-semibold"
           >
-            <Plus className="size-4" />New Case Dossier
+            <Plus className="size-4" />
+            New Case Dossier
           </Button>
         </div>
       </div>

@@ -170,9 +170,9 @@ export function ServerFilePickerModal({
           </div>
         </DialogHeader>
 
-        <div className="grid grid-cols-12 h-96">
+        <div className="grid grid-cols-12 h-95 min-h-95 max-h-95 overflow-hidden">
           {/* Left Sidebar: Shortcuts */}
-          <div className="col-span-4 border-r border-border bg-secondary/20 p-3 space-y-3">
+          <div className="col-span-4 border-r border-border bg-secondary/20 p-3 space-y-3 h-full overflow-y-auto">
             <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-semibold">
               Quick Locations
             </p>
@@ -214,8 +214,8 @@ export function ServerFilePickerModal({
           </div>
 
           {/* Right Area: Directory Listing */}
-          <div className="col-span-8 p-0 flex flex-col h-full bg-background">
-            <ScrollArea className="flex-1 h-full p-2">
+          <div className="col-span-8 p-0 flex flex-col h-full min-h-0 overflow-hidden bg-background">
+            <ScrollArea className="h-full w-full p-2">
               {isLoading ? (
                 <div className="flex items-center justify-center h-48 text-muted-foreground gap-2 text-xs">
                   <Loader2 className="size-4 animate-spin text-primary" />
