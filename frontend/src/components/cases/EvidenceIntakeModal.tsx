@@ -55,8 +55,9 @@ interface SSEAcquisitionEvent {
   rate_mb_s?: number;
   bytes_processed?: number;
   total_bytes?: number;
-  sha256_hash?: string;
-  md5_hash?: string;
+  sha256?: string;
+  md5?: string;
+  evidence_id?: string;
   message?: string;
   error?: string;
   device_brand?: string;
@@ -220,9 +221,17 @@ export function EvidenceIntakeModal({
           setSpeedMbps(spd);
           setStage(currentStage);
           if (data.message) setStatusMessage(data.message);
-          if (data.sha256_hash) setSha256Hash(data.sha256_hash);
-          if (data.md5_hash) setMd5Hash(data.md5_hash);
+
+          const hash256 = data.sha256;
+          const hashMd5 = data.md5;
+          if (hash256) setSha256Hash(hash256);
+          if (hashMd5) setMd5Hash(hashMd5);
+          if (data.evidence_id) setActiveEvidenceId(data.evidence_id);
           if (data.device_brand) setDeviceBrand(data.device_brand);
+          if (data.type === "COMPLETED" || data.status === "COMPLETED") {
+            setProgress(100);
+            setStage("COMPLETED");
+          }
 
           addOrUpdateTask({
             task_id: res.task_id,
