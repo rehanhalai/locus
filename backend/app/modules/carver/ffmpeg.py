@@ -44,25 +44,29 @@ def build_remux_command(
 
     Args:
         output_path: Path to the target .mp4 file.
-        stream_format: Elementary stream format ("h264", "hevc" for H.265, "mjpeg", etc.).
+        stream_format: Elementary stream format ("h264", "h265", "mpeg2", "mpeg", etc.).
         fps: Target framerate for elementary streams lacking timing headers.
 
     Returns:
         List of command-line arguments for subprocess execution.
     """
-    fmt_flag = "hevc" if stream_format.lower() in ("h265", "hevc") else "h264"
-    return [
-        get_ffmpeg_path(),
-        "-y",  # Overwrite output without asking
-        "-f",
-        fmt_flag,  # Input format: elementary stream
-        "-r",
-        str(fps),  # Framerate
+    cmd = [get_ffmpeg_path(), "-y"]
+    fmt = stream_format.lower()
+
+    if fmt in ("mpeg", "mpeg2", "mpegps", "mpegvideo"):
+        cmd.extend(["-f", "mpeg"])
+    elif fmt in ("h265", "hevc"):
+        cmd.extend(["-f", "hevc", "-r", str(fps)])
+    elif fmt in ("h264", "264", "avc"):
+        cmd.extend(["-f", "h264", "-r", str(fps)])
+
+    cmd.extend([
         "-i",
-        "pipe:0",  # Read elementary stream from stdin
+        "pipe:0",
         "-c:v",
-        "copy",  # Zero-transcoding: copy original compressed packets
+        "copy",
         "-movflags",
-        "+faststart",  # Move moov atom to start for instant web video streaming
+        "+faststart",
         output_path,
-    ]
+    ])
+    return cmd
