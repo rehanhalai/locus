@@ -4,26 +4,22 @@ import { useCaseStore } from "../stores/useCaseStore";
 import type { BackgroundTask } from "../types";
 
 export interface SSETaskProgressData {
+  type?: string;
   stage?: string;
   status?: string;
-  type?: string;
   percent?: number;
-  percentage?: number;
   progress_percent?: number;
-  progress?: number;
+  percentage?: number;
   speed?: string | number;
   speed_mbps?: number;
   speed_mb_s?: number;
-  rate_mb_s?: number;
   processed_bytes?: number;
-  bytes_processed?: number;
   total_bytes?: number;
   sha256?: string;
   md5?: string;
   evidence_id?: string;
   device_brand?: string;
   message?: string;
-  status_message?: string;
   error?: string;
 }
 
@@ -54,11 +50,15 @@ export function useTaskSSE<T extends SSETaskProgressData = SSETaskProgressData>(
   const [error, setError] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
 
+  const titleRef = useRef(title);
+  const taskTypeRef = useRef(taskType);
   const onMessageRef = useRef(onMessage);
   const onCompleteRef = useRef(onComplete);
   const onErrorRef = useRef(onError);
 
   useEffect(() => {
+    titleRef.current = title;
+    taskTypeRef.current = taskType;
     onMessageRef.current = onMessage;
     onCompleteRef.current = onComplete;
     onErrorRef.current = onError;
@@ -70,8 +70,8 @@ export function useTaskSSE<T extends SSETaskProgressData = SSETaskProgressData>(
     // Register initial task in global store
     addOrUpdateTask({
       task_id: taskId,
-      type: taskType,
-      title,
+      type: taskTypeRef.current,
+      title: titleRef.current,
       status: "PROCESSING",
       progress_percent: 0,
       started_at: new Date().toISOString(),
@@ -80,9 +80,9 @@ export function useTaskSSE<T extends SSETaskProgressData = SSETaskProgressData>(
     const streamUrl = endpoint || `/acquisition/stream/${taskId}`;
     const unsubscribe = subscribeSSE<T>(streamUrl, {
       onMessage: (data) => {
-        let pct = data.percent ?? data.percentage ?? data.progress_percent ?? data.progress;
+        let pct = data.percent ?? data.percentage ?? data.progress_percent;
         if (pct === undefined || pct === null) {
-          const proc = data.processed_bytes ?? data.bytes_processed;
+          const proc = data.processed_bytes;
           const tot = data.total_bytes;
           if (proc !== undefined && tot && tot > 0) {
             pct = (proc / tot) * 100;
@@ -91,35 +91,34 @@ export function useTaskSSE<T extends SSETaskProgressData = SSETaskProgressData>(
           }
         }
 
-        let speed = 0;
-        if (typeof data.speed === "number") {
-          speed = data.speed;
-        } else if (typeof data.speed === "string") {
-          speed = parseFloat(data.speed) || 0;
-        } else {
-          speed = data.speed_mbps ?? data.speed_mb_s ?? data.rate_mb_s ?? 0;
-        }
+        const speed =
+          typeof data.speed === "number"
+            ? data.speed
+            : typeof data.speed === "string"
+              ? parseFloat(data.speed) || 0
+              : (data.speed_mbps ?? data.speed_mb_s ?? 0);
 
         const currentStage = data.stage ?? data.status ?? "PROCESSING";
-        const msg = data.message ?? data.status_message ?? "";
+        const msg = data.message ?? "";
 
-        const roundedPct = Math.min(100, Math.max(0, Math.round(pct)));
-        setProgress(roundedPct);
+        const calculatedPct = Math.min(
+          100,
+          Math.max(0, pct >= 1 ? Math.round(pct * 10) / 10 : Math.round(pct * 100) / 100)
+        );
+        setProgress(calculatedPct);
         setSpeedMbps(speed);
         setStage(currentStage);
         if (msg) setMessage(msg);
 
         const isDone =
-          currentStage === "DONE" ||
-          currentStage === "COMPLETED" ||
-          data.type === "COMPLETED";
+          currentStage === "DONE" || currentStage === "COMPLETED" || data.type === "COMPLETED";
 
         addOrUpdateTask({
           task_id: taskId,
-          type: taskType,
-          title,
+          type: taskTypeRef.current,
+          title: titleRef.current,
           status: isDone ? "COMPLETED" : "PROCESSING",
-          progress_percent: isDone ? 100 : roundedPct,
+          progress_percent: isDone ? 100 : Math.round(calculatedPct),
           speed_mbps: speed,
           message: msg,
           started_at: new Date().toISOString(),
@@ -135,8 +134,8 @@ export function useTaskSSE<T extends SSETaskProgressData = SSETaskProgressData>(
         setStage("COMPLETED");
         addOrUpdateTask({
           task_id: taskId,
-          type: taskType,
-          title,
+          type: taskTypeRef.current,
+          title: titleRef.current,
           status: "COMPLETED",
           progress_percent: 100,
           started_at: new Date().toISOString(),
@@ -150,8 +149,8 @@ export function useTaskSSE<T extends SSETaskProgressData = SSETaskProgressData>(
         setStage("FAILED");
         addOrUpdateTask({
           task_id: taskId,
-          type: taskType,
-          title,
+          type: taskTypeRef.current,
+          title: titleRef.current,
           status: "FAILED",
           progress_percent: 0,
           error: err.message,
@@ -166,7 +165,7 @@ export function useTaskSSE<T extends SSETaskProgressData = SSETaskProgressData>(
     return () => {
       unsubscribe();
     };
-  }, [taskId, taskType, title, endpoint, addOrUpdateTask]);
+  }, [taskId, endpoint, addOrUpdateTask]);
 
   return {
     progress: taskId ? progress : 0,

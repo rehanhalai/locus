@@ -7,7 +7,7 @@ export interface SSEOptions<T = unknown> {
 }
 
 /**
- * Subscribes to an SSE endpoint using EventSource with robust error extraction and auto-cleanup.
+ * Subscribes to an SSE endpoint using EventSource with automatic reconnection support and safe error extraction.
  */
 export function subscribeSSE<T = Record<string, unknown>>(
   endpoint: string,
@@ -78,6 +78,10 @@ export function subscribeSSE<T = Record<string, unknown>>(
 
   eventSource.onerror = () => {
     if (isClosed) return;
+    // If the browser is in CONNECTING state (0), it is attempting auto-reconnect. Do not kill stream.
+    if (eventSource.readyState === EventSource.CONNECTING) {
+      return;
+    }
     closeStream();
     if (options.onError) {
       options.onError(new Error("SSE stream terminated or process encountered an error."));

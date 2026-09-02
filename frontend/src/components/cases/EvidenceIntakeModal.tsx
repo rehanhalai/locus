@@ -57,26 +57,6 @@ interface EvidenceIntakeModalProps {
   caseNumber: string;
 }
 
-interface SSEAcquisitionEvent {
-  stage?: string;
-  status?: string;
-  type?: string;
-  exit_code?: number;
-  percentage?: number;
-  progress_percent?: number;
-  speed_mbps?: number;
-  speed_mb_s?: number;
-  rate_mb_s?: number;
-  bytes_processed?: number;
-  total_bytes?: number;
-  sha256?: string;
-  md5?: string;
-  evidence_id?: string;
-  message?: string;
-  error?: string;
-  device_brand?: string;
-}
-
 export function EvidenceIntakeModal({
   open,
   onOpenChange,
@@ -111,12 +91,12 @@ export function EvidenceIntakeModal({
   const { data: detectedDevices = [], isLoading: isLoadingDevices } = useQuery({
     queryKey: ["system-block-devices"],
     queryFn: () => casesApi.listDevices(),
-    enabled: open,
-    staleTime: 10000,
+    enabled: open && !isProcessing,
+    staleTime: 60000,
   });
 
   // Real-time SSE acquisition progress and task drawer tracking
-  const sse = useTaskSSE<SSEAcquisitionEvent>({
+  const sse = useTaskSSE({
     taskId,
     taskType: "ingestion",
     title:
@@ -469,7 +449,12 @@ export function EvidenceIntakeModal({
                     <Activity className="size-4 text-cyan-400 animate-spin" />
                   )}
                   <span className="text-xs font-mono font-bold text-foreground">
-                    {sse.stage} {sse.progress}%
+                    {sse.stage}{" "}
+                    {typeof sse.progress === "number"
+                      ? sse.progress >= 1 || sse.progress === 0
+                        ? `${sse.progress.toFixed(1)}%`
+                        : `${sse.progress.toFixed(2)}%`
+                      : `${sse.progress}%`}
                   </span>
                 </div>
 
