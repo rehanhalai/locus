@@ -20,6 +20,9 @@ export function subscribeSSE<T = Record<string, unknown>>(
   const closeStream = () => {
     if (!isClosed) {
       isClosed = true;
+      eventSource.onmessage = null;
+      eventSource.onerror = null;
+      eventSource.onopen = null;
       eventSource.close();
     }
   };
@@ -31,8 +34,10 @@ export function subscribeSSE<T = Record<string, unknown>>(
 
       if (typeof parsed === "object" && parsed !== null) {
         const obj = parsed as Record<string, unknown>;
-        const eventType = String(obj.type || "");
-        const status = String(obj.status || obj.stage || "");
+        const eventType = String(obj.type || "").toUpperCase();
+        const status = String(obj.status || "").toUpperCase();
+        const stage = String(obj.stage || "").toUpperCase();
+        const percent = Number(obj.percent ?? obj.progress_percent ?? obj.percentage ?? 0);
         const exitCode = typeof obj.exit_code === "number" ? obj.exit_code : undefined;
 
         // Check for error/failure payload
@@ -41,6 +46,8 @@ export function subscribeSSE<T = Record<string, unknown>>(
           eventType === "ERROR" ||
           status === "FAILED" ||
           status === "ERROR" ||
+          stage === "FAILED" ||
+          stage === "ERROR" ||
           (exitCode !== undefined && exitCode !== 0);
 
         if (isFailed) {
@@ -61,13 +68,17 @@ export function subscribeSSE<T = Record<string, unknown>>(
           eventType === "DONE" ||
           eventType === "COMPLETED" ||
           status === "DONE" ||
-          status === "COMPLETED";
+          status === "COMPLETED" ||
+          stage === "DONE" ||
+          stage === "COMPLETED" ||
+          percent >= 100;
 
         if (isCompleted) {
           closeStream();
           if (options.onComplete) {
             options.onComplete();
           }
+          return;
         }
       }
     } catch {
@@ -78,13 +89,9 @@ export function subscribeSSE<T = Record<string, unknown>>(
 
   eventSource.onerror = () => {
     if (isClosed) return;
-    // If the browser is in CONNECTING state (0), it is attempting auto-reconnect. Do not kill stream.
-    if (eventSource.readyState === EventSource.CONNECTING) {
-      return;
-    }
     closeStream();
     if (options.onError) {
-      options.onError(new Error("SSE stream terminated or process encountered an error."));
+      options.onError(new Error("SSE connection ended or closed by server."));
     }
   };
 

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   HardDrive,
@@ -66,6 +66,8 @@ export function EvidenceIntakeModal({
   const navigate = useNavigate();
   const investigatorName = useCaseStore((s) => s.investigatorName);
   const setActiveEvidenceId = useCaseStore((s) => s.setActiveEvidenceId);
+  const activeIntakeState = useCaseStore((s) => s.activeIntakeState);
+  const setActiveIntakeState = useCaseStore((s) => s.setActiveIntakeState);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,6 +88,18 @@ export function EvidenceIntakeModal({
   const [md5Hash, setMd5Hash] = useState<string | null>(null);
   const [deviceBrand, setDeviceBrand] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  // Restore active intake task state across page reloads
+  useEffect(() => {
+    if (open && activeIntakeState && activeIntakeState.caseId === caseId) {
+      setTaskId(activeIntakeState.taskId);
+      setIsProcessing(true);
+      if (activeIntakeState.filePath) {
+        setFilePath(activeIntakeState.filePath);
+        setSelectedFileName(activeIntakeState.filePath.split("/").pop() || null);
+      }
+    }
+  }, [open, activeIntakeState, caseId]);
 
   // Live Query to detect real system block devices from backend API
   const { data: detectedDevices = [], isLoading: isLoadingDevices } = useQuery({
@@ -109,8 +123,12 @@ export function EvidenceIntakeModal({
       if (data.evidence_id) setActiveEvidenceId(data.evidence_id);
       if (data.device_brand) setDeviceBrand(data.device_brand);
     },
+    onComplete: () => {
+      setActiveIntakeState(null);
+    },
     onError: (err) => {
       setIsProcessing(false);
+      setActiveIntakeState(null);
       setApiError(
         err.message.includes("dc3dd")
           ? `dc3dd Clone Failed: ${err.message}. Ensure the target device is connected, unmounted, and locus has read permissions.`
@@ -211,13 +229,21 @@ export function EvidenceIntakeModal({
 
       setTaskId(res.task_id);
       setActiveEvidenceId(res.evidence_id);
+      setActiveIntakeState({
+        caseId,
+        caseNumber,
+        taskId: res.task_id,
+        filePath: tab === "image" ? filePath.trim() : undefined,
+      });
     } catch (err: unknown) {
       setIsProcessing(false);
+      setActiveIntakeState(null);
       setApiError(err instanceof Error ? err.message : "Failed to initiate acquisition.");
     }
   };
 
   const handleProceedToWorkspace = () => {
+    setActiveIntakeState(null);
     onOpenChange(false);
     navigate("/investigate");
   };
@@ -225,13 +251,27 @@ export function EvidenceIntakeModal({
   const handleReset = () => {
     setIsProcessing(false);
     setTaskId(null);
+    setActiveIntakeState(null);
     setApiError(null);
   };
 
   const isCompleted = sse.stage === "COMPLETED" || sse.stage === "DONE" || sse.isCompleted;
 
+  useEffect(() => {
+    if (isCompleted) {
+      setActiveIntakeState(null);
+    }
+  }, [isCompleted, setActiveIntakeState]);
+
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setActiveIntakeState(null);
+    }
+    onOpenChange(nextOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-xl bg-card border-border">
         <DialogHeader>
           <div className="flex items-center gap-2.5">

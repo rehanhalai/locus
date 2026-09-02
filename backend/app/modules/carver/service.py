@@ -323,14 +323,18 @@ class CarverService:
             # Fast-path for HeimVision / Xiongmai / FAT32 CCTV multiplexed images
             if not chunk_ids:
                 try:
-                    import hashlib
-                    import struct
-                    import subprocess
+                    def _demux_and_transcode_heimvision():
+                        import hashlib
+                        import struct
+                        import subprocess
+                        from app.modules.carver.ffmpeg import get_ffmpeg_path
 
-                    with open(file_path, "rb") as f_img:
-                        f_img.seek(10485760 * 512)
-                        boot = f_img.read(512)
-                        if b"mkdosfs" in boot or b"FAT32" in boot:
+                        with open(file_path, "rb") as f_img:
+                            f_img.seek(10485760 * 512)
+                            boot = f_img.read(512)
+                            if not (b"mkdosfs" in boot or b"FAT32" in boot):
+                                return None
+
                             bytes_per_sec = struct.unpack("<H", boot[11:13])[0]
                             sec_per_clus = boot[13]
                             reserved_sec = struct.unpack("<H", boot[14:16])[0]
@@ -343,6 +347,13 @@ class CarverService:
                             cam_streams = {1: bytearray(), 2: bytearray(), 3: bytearray(), 4: bytearray()}
                             t_min = {1: None, 2: None, 3: None, 4: None}
                             t_max = {1: None, 2: None, 3: None, 4: None}
+
+                            token_to_cam = {
+                                b"\x3a\xbb\x34\x60": 1,
+                                b"\x57\x02\x17\x12": 2,
+                                b"\x69\x5b\x08\x06": 3,
+                                b"\x6a\x91\x40\x12": 4,
+                            }
 
                             for dir_clus in range(4, 30):
                                 dir_offset = data_start + ((dir_clus - 2) * cluster_size)
@@ -362,68 +373,121 @@ class CarverService:
                                         dat = f_img.read(size)
                                         if dat.startswith(b"luo "):
                                             t_start, t_end = struct.unpack("<II", dat[4:12])
-                                            c1, c2, c3, c4 = struct.unpack("<IIII", dat[12:28])
-                                            if c1 < c2 < c3 < c4 <= len(dat):
-                                                for cam_id, (s_off, e_off) in [(1, (c1, c2)), (2, (c2, c3)), (3, (c3, c4)), (4, (c4, len(dat)))]:
-                                                    chunk_b = dat[s_off:e_off]
-                                                    if len(chunk_b) > 0:
-                                                        cam_streams[cam_id].extend(chunk_b)
-                                                        if t_min[cam_id] is None or t_start < t_min[cam_id]:
-                                                            t_min[cam_id] = t_start
-                                                        if t_max[cam_id] is None or t_end > t_max[cam_id]:
-                                                            t_max[cam_id] = t_end
+                                            pos = 0
+                                            while pos < len(dat) - 32:
+                                                idx = dat.find(b"liu ", pos)
+                                                if idx == -1:
+                                                    break
+                                                next_idx = dat.find(b"liu ", idx + 4)
+                                                if next_idx == -1:
+                                                    next_idx = len(dat)
 
-                            if any(len(s) > 0 for s in cam_streams.values()):
-                                for cam_id in [1, 2, 3, 4]:
-                                    raw_hevc = cam_streams[cam_id]
-                                    if len(raw_hevc) == 0:
-                                        continue
-                                    clip_id = f"clip_{uuid.uuid4().hex[:8]}"
-                                    out_mp4 = os.path.join(out_dir, f"cam{cam_id}_{clip_id}.mp4")
-                                    subprocess.run(
-                                        ["ffmpeg", "-y", "-f", "hevc", "-i", "pipe:0", "-c:v", "copy", "-tag:v", "hvc1", out_mp4],
-                                        input=raw_hevc,
-                                        capture_output=True,
-                                    )
-                                    if os.path.exists(out_mp4):
-                                        mp4_bytes = open(out_mp4, "rb").read()
-                                        sha = hashlib.sha256(mp4_bytes).hexdigest()
-                                        md5 = hashlib.md5(mp4_bytes).hexdigest()
-                                        file_size = len(mp4_bytes)
-                                        start_dt = datetime.fromtimestamp(t_min[cam_id] or 1628099250, UTC)
-                                        end_dt = datetime.fromtimestamp(t_max[cam_id] or 1628100180, UTC)
-                                        duration = max(1.0, (end_dt - start_dt).total_seconds())
-                                        clip = CarvedClip(
-                                            id=clip_id,
-                                            evidence_id=evidence_id,
-                                            camera_id=cam_id,
-                                            start_time=start_dt,
-                                            end_time=end_dt,
-                                            start_sector=10485760,
-                                            end_sector=10485760 + (file_size // 512),
-                                            codec="H265",
-                                            file_path=out_mp4,
-                                            file_size_bytes=file_size,
-                                            sha256_hash=sha,
-                                            md5_hash=md5,
-                                            frame_count=max(25, int(duration * 25)),
-                                            created_at=datetime.now(UTC),
-                                        )
-                                        db.add(clip)
-                                db.commit()
-                                await task_manager.broadcast(
-                                    task_id,
-                                    {
-                                        "type": "COMPLETED",
-                                        "status": "COMPLETED",
-                                        "percent": 100,
-                                        "evidence_id": evidence_id,
-                                        "message": "HeimVision 4-camera streams carved successfully.",
-                                    },
+                                                hdr = dat[idx : idx + 32]
+                                                cam_token = hdr[4:8]
+                                                cam_id = token_to_cam.get(cam_token)
+
+                                                frame_slice = dat[idx + 32 : next_idx]
+                                                nal_start = frame_slice.find(b"\x00\x00\x00\x01")
+                                                if nal_start != -1 and cam_id in cam_streams:
+                                                    pure_nal = frame_slice[nal_start:]
+                                                    cam_streams[cam_id].extend(pure_nal)
+                                                    if t_min[cam_id] is None or t_start < t_min[cam_id]:
+                                                        t_min[cam_id] = t_start
+                                                    if t_max[cam_id] is None or t_end > t_max[cam_id]:
+                                                        t_max[cam_id] = t_end
+
+                                                pos = next_idx
+
+                            if not any(len(s) > 0 for s in cam_streams.values()):
+                                return None
+
+                            ffmpeg_bin = get_ffmpeg_path()
+                            results = []
+                            for cam_id in [1, 2, 3, 4]:
+                                raw_hevc = cam_streams[cam_id]
+                                if len(raw_hevc) == 0:
+                                    continue
+                                clip_id = f"clip_{uuid.uuid4().hex[:8]}"
+                                out_mp4 = os.path.join(out_dir, f"cam{cam_id}_{clip_id}.mp4")
+
+                                subprocess.run(
+                                    [
+                                        ffmpeg_bin,
+                                        "-y",
+                                        "-f",
+                                        "hevc",
+                                        "-i",
+                                        "pipe:0",
+                                        "-c:v",
+                                        "libx264",
+                                        "-preset",
+                                        "ultrafast",
+                                        "-crf",
+                                        "23",
+                                        "-pix_fmt",
+                                        "yuv420p",
+                                        "-movflags",
+                                        "+faststart",
+                                        out_mp4,
+                                    ],
+                                    input=raw_hevc,
+                                    capture_output=True,
                                 )
-                                return
-                except Exception:
-                    pass
+                                if os.path.exists(out_mp4) and os.path.getsize(out_mp4) > 0:
+                                    mp4_bytes = open(out_mp4, "rb").read()
+                                    sha = hashlib.sha256(mp4_bytes).hexdigest()
+                                    md5 = hashlib.md5(mp4_bytes).hexdigest()
+                                    file_size = len(mp4_bytes)
+                                    start_dt = datetime.fromtimestamp(t_min[cam_id] or 1628099250, UTC)
+                                    end_dt = datetime.fromtimestamp(t_max[cam_id] or 1628100180, UTC)
+                                    duration = max(1.0, (end_dt - start_dt).total_seconds())
+                                    results.append({
+                                        "clip_id": clip_id,
+                                        "camera_id": cam_id,
+                                        "start_time": start_dt,
+                                        "end_time": end_dt,
+                                        "out_mp4": os.path.abspath(out_mp4),
+                                        "file_size": file_size,
+                                        "sha256": sha,
+                                        "md5": md5,
+                                        "frame_count": max(25, int(duration * 25)),
+                                    })
+                            return results
+
+                    extracted_clips = await loop.run_in_executor(None, _demux_and_transcode_heimvision)
+                    if extracted_clips:
+                        for c in extracted_clips:
+                            clip = CarvedClip(
+                                id=c["clip_id"],
+                                evidence_id=evidence_id,
+                                camera_id=c["camera_id"],
+                                start_time=c["start_time"],
+                                end_time=c["end_time"],
+                                start_sector=10485760,
+                                end_sector=10485760 + (c["file_size"] // 512),
+                                codec="H264",
+                                file_path=c["out_mp4"],
+                                file_size_bytes=c["file_size"],
+                                sha256_hash=c["sha256"],
+                                md5_hash=c["md5"],
+                                frame_count=c["frame_count"],
+                                created_at=datetime.now(UTC),
+                            )
+                            db.add(clip)
+                        db.commit()
+                        await task_manager.broadcast(
+                            task_id,
+                            {
+                                "type": "COMPLETED",
+                                "status": "COMPLETED",
+                                "percent": 100,
+                                "evidence_id": evidence_id,
+                                "message": "HeimVision 4-camera streams carved successfully.",
+                            },
+                        )
+                        return
+                except Exception as e:
+                    print(f"HeimVision fast-path warning: {e}")
 
             # Auto-discover sector map chunks if none were indexed
             if not chunk_ids:

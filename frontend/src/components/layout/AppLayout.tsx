@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarInset } from "../ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Topbar } from "./Topbar";
 import { TaskDrawer } from "./TaskDrawer";
+import { GlobalTaskWatcher } from "./GlobalTaskWatcher";
 import { useHotkeys } from "../../hooks/useHotkeys";
 
 export function AppLayout() {
@@ -28,6 +29,9 @@ export function AppLayout() {
 
         {/* Slide-over Background Pipeline Tracker */}
         <TaskDrawer />
+
+        {/* Persistent Floating Task HUD across Page Refreshes */}
+        <GlobalTaskWatcher />
       </div>
     </SidebarProvider>
   );

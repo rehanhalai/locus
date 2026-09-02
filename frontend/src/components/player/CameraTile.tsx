@@ -41,6 +41,13 @@ export function CameraTile({
   const [resolution, setResolution] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+  const streamUrl = clip?.stream_url || (clip?.id ? `${apiBase}/carver/stream/${clip.id}` : null);
+
+  useEffect(() => {
+    setVideoError(false);
+  }, [streamUrl]);
+
   useEffect(() => {
     const handleFsChange = () => {
       setIsFullscreen(document.fullscreenElement === containerRef.current);
@@ -104,9 +111,6 @@ export function CameraTile({
       setVideoError(false);
     }
   };
-
-  const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
-  const streamUrl = clip?.stream_url || (clip?.id ? `${apiBase}/carver/stream/${clip.id}` : null);
 
   return (
     <div
@@ -201,6 +205,7 @@ export function CameraTile({
           <video
             ref={videoRef}
             src={streamUrl}
+            crossOrigin="anonymous"
             playsInline
             muted={isMuted}
             preload="auto"

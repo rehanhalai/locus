@@ -21,10 +21,18 @@ interface CaseStoreState {
   focusedCameraId: number | null;
   cameraOffsets: Record<number, number>; // camera_id -> offset in seconds
 
+  activeIntakeState: {
+    caseId: string;
+    caseNumber: string;
+    taskId: string;
+    filePath?: string;
+  } | null;
+
   // Actions
   setActiveCase: (caseId: string | null, caseNumber?: string, caseName?: string) => void;
   setActiveEvidenceId: (evidenceId: string | null) => void;
   setActiveRoom: (room: RoomId) => void;
+  setActiveIntakeState: (state: { caseId: string; caseNumber: string; taskId: string; filePath?: string } | null) => void;
   setTaskDrawerOpen: (open: boolean) => void;
   toggleTaskDrawer: () => void;
   setInvestigatorName: (name: string) => void;
@@ -55,6 +63,7 @@ export const useCaseStore = create<CaseStoreState>()(
       activeRoom: "cases",
       taskDrawerOpen: false,
       runningTasks: [],
+      activeIntakeState: null,
 
       masterPlayheadTime: new Date().toISOString(),
       isPlaying: false,
@@ -73,6 +82,7 @@ export const useCaseStore = create<CaseStoreState>()(
 
       setActiveEvidenceId: (evidenceId) => set({ activeEvidenceId: evidenceId }),
       setActiveRoom: (room) => set({ activeRoom: room }),
+      setActiveIntakeState: (intakeState) => set({ activeIntakeState: intakeState }),
       setTaskDrawerOpen: (open) => set({ taskDrawerOpen: open }),
       toggleTaskDrawer: () => set((state) => ({ taskDrawerOpen: !state.taskDrawerOpen })),
       setInvestigatorName: (name) => set({ investigatorName: name }),
@@ -124,6 +134,7 @@ export const useCaseStore = create<CaseStoreState>()(
         activeRoom: state.activeRoom,
         runningTasks: state.runningTasks,
         cameraOffsets: state.cameraOffsets,
+        activeIntakeState: state.activeIntakeState,
       }),
     }
   )
