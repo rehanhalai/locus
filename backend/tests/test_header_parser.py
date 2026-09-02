@@ -140,19 +140,19 @@ def test_hikvision_unpacker_camera3():
     assert res.payload_size == 55000
 
 
-def test_hikvision_unpacker_mpeg4():
-    """Verify unpacking of a Hikvision MPEG-4 frame header."""
+def test_hikvision_unpacker_h265():
+    """Verify unpacking of a Hikvision H.265 frame header."""
     header = bytearray(32)
     header[0:4] = HIKVISION_MAGIC
     header[4:6] = struct.pack("<H", 0)  # Channel 0 -> Camera 1
     header[6] = 0x01  # Keyframe
-    header[7] = 0x03  # MPEG-4
+    header[7] = 0x02  # H.265
     header[8:12] = struct.pack("<I", 20000)
     header[12:16] = struct.pack("<I", 1787916000)
 
     res = HikvisionHeaderUnpacker.unpack(header)
     assert res is not None
-    assert res.stream_format == "MPEG4"
+    assert res.stream_format == "H265"
     assert res.is_keyframe is True
 
 

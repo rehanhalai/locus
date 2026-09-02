@@ -7,12 +7,14 @@ import {
   FolderOpen,
   RefreshCw,
   HardDrive,
+  Zap,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { useCaseStore } from "../stores/useCaseStore";
 import { CameraTile } from "../components/player/CameraTile";
 import { TimelineScrubber } from "../components/player/TimelineScrubber";
+import { CalibrationModal } from "../components/player/CalibrationModal";
 import { useQuery } from "@tanstack/react-query";
 import { casesApi } from "../api/cases";
 import { videoApi } from "../api/video";
@@ -31,6 +33,8 @@ const DEFAULT_CAMERA_LABELS: Record<number, string> = {
 export function InvestigatePage() {
   const navigate = useNavigate();
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("GRID_2X2");
+  const [calibrationModalOpen, setCalibrationModalOpen] = useState(false);
+  const [calibratingCameraId, setCalibratingCameraId] = useState(1);
 
   const activeCaseId = useCaseStore((s) => s.activeCaseId);
   const activeCaseNumber = useCaseStore((s) => s.activeCaseNumber);
@@ -67,6 +71,8 @@ export function InvestigatePage() {
     enabled: !!activeEvidenceId,
   });
 
+  const [isCarving, setIsCarving] = useState(false);
+
   // Map clips to camera channel IDs
   const cameraClipsMap = useMemo(() => {
     const map: Record<number, CarvedClip> = {};
@@ -83,17 +89,35 @@ export function InvestigatePage() {
 
   const activeClipsCount = Object.keys(cameraClipsMap).length;
 
+  const handleCarveAll = async () => {
+    if (!activeEvidenceId || isCarving) return;
+    try {
+      setIsCarving(true);
+      await videoApi.carveAllClips({ evidence_id: activeEvidenceId });
+      // Poll for completion
+      const interval = setInterval(async () => {
+        const res = await refetchClips();
+        if (res.data?.clips && res.data.clips.length > 0) {
+          clearInterval(interval);
+          setIsCarving(false);
+        }
+      }, 2000);
+      setTimeout(() => {
+        clearInterval(interval);
+        setIsCarving(false);
+      }, 30000);
+    } catch {
+      setIsCarving(false);
+    }
+  };
+
   const handleTileFocusToggle = (camId: number) => {
-    if (focusedCameraId === camId) {
+    if (layoutMode === "SINGLE" && focusedCameraId === camId) {
+      setLayoutMode("GRID_2X2");
       setFocusedCameraId(null);
-      if (layoutMode === "SINGLE") {
-        setLayoutMode("GRID_2X2");
-      }
     } else {
       setFocusedCameraId(camId);
-      if (layoutMode === "GRID_2X2") {
-        setLayoutMode("FOCUS_1X3");
-      }
+      setLayoutMode("SINGLE");
     }
   };
 
@@ -184,6 +208,22 @@ export function InvestigatePage() {
             </Button>
           </div>
 
+          {activeEvidenceId && activeClipsCount === 0 && (
+            <Button
+              variant="default"
+              size="xs"
+              onClick={handleCarveAll}
+              disabled={isCarving}
+              className="gap-1.5 text-xs font-semibold shadow-xs"
+              title="Carve video streams from ingested disk image"
+            >
+              <Zap
+                className={`size-3.5 ${isCarving ? "animate-spin text-amber-400" : "fill-current"}`}
+              />
+              {isCarving ? "Carving Feeds..." : "Carve Streams"}
+            </Button>
+          )}
+
           <Button
             variant="outline"
             size="icon-xs"
@@ -207,6 +247,10 @@ export function InvestigatePage() {
                 clip={cameraClipsMap[camId] || null}
                 isFocused={focusedCameraId === camId}
                 onToggleFocus={() => handleTileFocusToggle(camId)}
+                onOpenCalibration={() => {
+                  setCalibratingCameraId(camId);
+                  setCalibrationModalOpen(true);
+                }}
               />
             ))}
           </div>
@@ -222,6 +266,10 @@ export function InvestigatePage() {
                 clip={cameraClipsMap[primaryCamId] || null}
                 isFocused={true}
                 onToggleFocus={() => handleTileFocusToggle(primaryCamId)}
+                onOpenCalibration={() => {
+                  setCalibratingCameraId(primaryCamId);
+                  setCalibrationModalOpen(true);
+                }}
               />
             </div>
 
@@ -235,6 +283,10 @@ export function InvestigatePage() {
                     clip={cameraClipsMap[camId] || null}
                     isFocused={false}
                     onToggleFocus={() => handleTileFocusToggle(camId)}
+                    onOpenCalibration={() => {
+                      setCalibratingCameraId(camId);
+                      setCalibrationModalOpen(true);
+                    }}
                   />
                 </div>
               ))}
@@ -250,13 +302,31 @@ export function InvestigatePage() {
               clip={cameraClipsMap[primaryCamId] || null}
               isFocused={true}
               onToggleFocus={() => handleTileFocusToggle(primaryCamId)}
+              onOpenCalibration={() => {
+                setCalibratingCameraId(primaryCamId);
+                setCalibrationModalOpen(true);
+              }}
             />
           </div>
         )}
       </div>
 
       {/* Master Timeline Scrubber & Synchronized Playhead */}
-      <TimelineScrubber clips={carvedData?.clips || []} />
+      <TimelineScrubber
+        clips={carvedData?.clips || []}
+        onOpenCalibration={() => {
+          setCalibratingCameraId(1);
+          setCalibrationModalOpen(true);
+        }}
+      />
+
+      {/* Clock Drift Calibration Modal */}
+      <CalibrationModal
+        open={calibrationModalOpen}
+        onOpenChange={setCalibrationModalOpen}
+        evidenceId={activeEvidenceId || ""}
+        initialCameraId={calibratingCameraId}
+      />
     </div>
   );
 }

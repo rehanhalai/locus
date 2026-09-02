@@ -316,8 +316,73 @@ class CarverService:
                 db.query(DeviceMetadata).filter(DeviceMetadata.evidence_id == evidence_id).first()
             )
             brand = meta.dvr_brand_guess if meta and meta.dvr_brand_guess else DVRBrand.UNKNOWN
-            demuxer = SectorDemuxer(sector_size=meta.sector_size if meta else 512)
+            sector_size = meta.sector_size if meta and meta.sector_size else 512
+            demuxer = SectorDemuxer(sector_size=sector_size)
             out_dir = cls.get_output_dir_for_evidence(evidence_id)
+
+            # Auto-discover sector map chunks if none were indexed
+            if not chunk_ids:
+                from app.modules.header_parser.indexer import MasterSectorIndexer
+
+                indexer = MasterSectorIndexer(sector_size=sector_size)
+                fsize = os.path.getsize(file_path)
+                total_sec = fsize // sector_size
+
+                discovered = await loop.run_in_executor(
+                    None,
+                    indexer.index_partition,
+                    file_path,
+                    0,
+                    total_sec,
+                    brand,
+                )
+
+                for d in discovered:
+                    chunk_rec = MasterSectorMap(
+                        evidence_id=evidence_id,
+                        camera_id=d.camera_id,
+                        start_sector=d.start_sector,
+                        end_sector=d.end_sector,
+                        start_time=d.start_time,
+                        end_time=d.end_time,
+                        frame_count=d.frame_count,
+                        keyframe_count=d.keyframe_count,
+                        stream_format=d.stream_format or "H264",
+                        size_bytes=d.size_bytes or max(sector_size, (d.end_sector - d.start_sector + 1) * sector_size),
+                        created_at=datetime.now(UTC),
+                    )
+                    db.add(chunk_rec)
+                db.commit()
+
+                chunks_in_db = (
+                    db.query(MasterSectorMap)
+                    .filter(MasterSectorMap.evidence_id == evidence_id)
+                    .order_by(MasterSectorMap.camera_id, MasterSectorMap.start_sector)
+                    .all()
+                )
+                chunk_ids = [c.id for c in chunks_in_db]
+
+            # Fallback if still empty (flat bitstream without headers)
+            if not chunk_ids:
+                ev_file = db.query(EvidenceFiles).filter(EvidenceFiles.id == evidence_id).first()
+                if ev_file:
+                    total_sectors = max(1, (ev_file.file_size_bytes // sector_size) - 1)
+                    fallback_chunk = MasterSectorMap(
+                        evidence_id=evidence_id,
+                        camera_id=1,
+                        start_sector=0,
+                        end_sector=total_sectors,
+                        start_time=datetime.now(UTC),
+                        end_time=datetime.now(UTC),
+                        frame_count=max(1, total_sectors // 64),
+                        keyframe_count=max(1, total_sectors // 1024),
+                        stream_format="H264",
+                        size_bytes=ev_file.file_size_bytes,
+                        created_at=datetime.now(UTC),
+                    )
+                    db.add(fallback_chunk)
+                    db.commit()
+                    chunk_ids = [fallback_chunk.id]
 
             total = len(chunk_ids)
             carved_clips_created = []

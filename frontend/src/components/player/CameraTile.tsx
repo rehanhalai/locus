@@ -8,6 +8,8 @@ import {
   Clock,
   VideoOff,
   Radio,
+  Expand,
+  Shrink,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -32,10 +34,29 @@ export function CameraTile({
   onToggleFocus,
   onOpenCalibration,
 }: CameraTileProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [resolution, setResolution] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    };
+    document.addEventListener("fullscreenchange", handleFsChange);
+    return () => document.removeEventListener("fullscreenchange", handleFsChange);
+  }, []);
+
+  const toggleNativeFullscreen = () => {
+    if (!containerRef.current) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      containerRef.current.requestFullscreen().catch(() => {});
+    }
+  };
 
   const isPlaying = useCaseStore((s) => s.isPlaying);
   const playbackSpeed = useCaseStore((s) => s.playbackSpeed);
@@ -84,14 +105,18 @@ export function CameraTile({
     }
   };
 
-  const streamUrl = clip?.id ? `/api/v1/carver/stream/${clip.id}` : null;
+  const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+  const streamUrl = clip?.stream_url || (clip?.id ? `${apiBase}/carver/stream/${clip.id}` : null);
 
   return (
     <div
-      className={`relative rounded-xl bg-card border overflow-hidden flex flex-col justify-between p-2.5 transition-all group ${
-        isFocused
-          ? "border-primary ring-2 ring-primary/30 shadow-2xl z-20"
-          : "border-border hover:border-border/80 shadow-md"
+      ref={containerRef}
+      className={`relative rounded-xl bg-card border overflow-hidden flex flex-col justify-between p-2.5 transition-all group h-full w-full ${
+        isFullscreen
+          ? "fixed inset-0 z-50 rounded-none border-none"
+          : isFocused
+            ? "border-primary ring-2 ring-primary/30 shadow-2xl z-20"
+            : "border-border hover:border-border/80 shadow-md"
       }`}
     >
       {/* Top HUD Header */}
@@ -152,11 +177,21 @@ export function CameraTile({
               size="icon-xs"
               onClick={onToggleFocus}
               className="text-muted-foreground hover:text-foreground"
-              title={isFocused ? "Restore Grid View" : "Maximize Camera Feed"}
+              title={isFocused ? "Restore Grid Layout" : "Maximize Camera Tile"}
             >
               {isFocused ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
             </Button>
           )}
+
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={toggleNativeFullscreen}
+            className="text-muted-foreground hover:text-foreground"
+            title={isFullscreen ? "Exit Fullscreen (Esc)" : "Enter Browser Fullscreen"}
+          >
+            {isFullscreen ? <Shrink className="size-3.5" /> : <Expand className="size-3.5" />}
+          </Button>
         </div>
       </div>
 

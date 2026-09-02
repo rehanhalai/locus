@@ -1,5 +1,13 @@
 import { ScrollText, Download } from "lucide-react";
 import { Button } from "../components/ui/button";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../components/ui/table";
 import { exportApi } from "../api/export";
 import { useCaseStore } from "../stores/useCaseStore";
 
@@ -82,32 +90,51 @@ export function AuditPage() {
 
       {/* Audit Log Table matching Excalidraw */}
       <div className="rounded-xl border border-border overflow-hidden bg-card">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-secondary/70 border-b border-border text-muted-foreground font-mono">
-            <tr>
-              <th className="py-3 px-4 w-16">Log #</th>
-              <th className="py-3 px-4 w-48">Timestamp (UTC)</th>
-              <th className="py-3 px-4 w-52">Action / Event</th>
-              <th className="py-3 px-4 w-44">Investigator</th>
-              <th className="py-3 px-4">Details & Proof</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/60 font-mono">
+        <Table>
+          <TableHeader className="bg-secondary/70">
+            <TableRow className="border-border">
+              <TableHead className="py-3 px-4 w-16 font-mono text-xs text-muted-foreground">
+                Log #
+              </TableHead>
+              <TableHead className="py-3 px-4 w-48 font-mono text-xs text-muted-foreground">
+                Timestamp (UTC)
+              </TableHead>
+              <TableHead className="py-3 px-4 w-52 font-mono text-xs text-muted-foreground">
+                Action / Event
+              </TableHead>
+              <TableHead className="py-3 px-4 w-44 font-mono text-xs text-muted-foreground">
+                Investigator
+              </TableHead>
+              <TableHead className="py-3 px-4 font-mono text-xs text-muted-foreground">
+                Details & Proof
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="font-mono text-xs">
             {mockLogs.map((log) => (
-              <tr key={log.id} className="hover:bg-muted/30 transition-colors">
-                <td className="py-3.5 px-4 font-bold text-muted-foreground">{log.id}</td>
-                <td className="py-3.5 px-4 text-foreground">{log.timestamp}</td>
-                <td className="py-3.5 px-4">
+              <TableRow
+                key={log.id}
+                className="border-border/60 hover:bg-muted/30 transition-colors"
+              >
+                <TableCell className="py-3.5 px-4 font-bold text-muted-foreground">
+                  {log.id}
+                </TableCell>
+                <TableCell className="py-3.5 px-4 text-foreground">{log.timestamp}</TableCell>
+                <TableCell className="py-3.5 px-4">
                   <span className="px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 font-bold">
                     {log.action}
                   </span>
-                </td>
-                <td className="py-3.5 px-4 text-muted-foreground">{log.investigator}</td>
-                <td className="py-3.5 px-4 text-foreground font-sans">{log.details}</td>
-              </tr>
+                </TableCell>
+                <TableCell className="py-3.5 px-4 text-muted-foreground">
+                  {log.investigator}
+                </TableCell>
+                <TableCell className="py-3.5 px-4 text-foreground font-sans">
+                  {log.details}
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

@@ -93,16 +93,13 @@ class SectorDemuxer:
             f.seek(start_sector * self.sector_size)
             sectors_read = 0
 
-            # Special fast path for MPEG-PS / Direct unindexed raw streams
+            # Special fast path for direct unindexed raw streams
             if header_size == 0:
                 total_bytes = total_sectors_to_scan * self.sector_size
                 chunk_data = f.read(total_bytes)
                 if chunk_data:
                     elementary_payload.extend(chunk_data)
-                    if chunk_data.startswith(b"\x00\x00\x01\xba") or b"\x00\x00\x01\xba" in chunk_data[:4096]:
-                        detected_codec = VideoCodec.MPEG2
-                    elif b"\x00\x00\x00\x01" in chunk_data[:4096] or b"\x00\x00\x01" in chunk_data[:4096]:
-                        detected_codec = VideoCodec.H264
+                    detected_codec = VideoCodec.H264
                     frame_count = max(1, len(chunk_data) // 32768)
                     keyframe_count = max(1, frame_count // 30)
             else:

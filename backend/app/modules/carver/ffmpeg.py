@@ -53,20 +53,36 @@ def build_remux_command(
     cmd = [get_ffmpeg_path(), "-y"]
     fmt = stream_format.lower()
 
-    if fmt in ("mpeg", "mpeg2", "mpegps", "mpegvideo"):
-        cmd.extend(["-f", "mpeg"])
-    elif fmt in ("h265", "hevc"):
-        cmd.extend(["-f", "hevc", "-r", str(fps)])
-    elif fmt in ("h264", "264", "avc"):
-        cmd.extend(["-f", "h264", "-r", str(fps)])
+    if fmt in ("h265", "hevc"):
+        cmd.extend([
+            "-f",
+            "hevc",
+            "-r",
+            str(fps),
+            "-i",
+            "pipe:0",
+            "-c:v",
+            "copy",
+            "-tag:v",
+            "hvc1",
+            "-movflags",
+            "+faststart",
+            output_path,
+        ])
+    else:
+        # Standard H.264 elementary stream: zero-transcoding direct copy
+        cmd.extend([
+            "-f",
+            "h264",
+            "-r",
+            str(fps),
+            "-i",
+            "pipe:0",
+            "-c:v",
+            "copy",
+            "-movflags",
+            "+faststart",
+            output_path,
+        ])
 
-    cmd.extend([
-        "-i",
-        "pipe:0",
-        "-c:v",
-        "copy",
-        "-movflags",
-        "+faststart",
-        output_path,
-    ])
     return cmd

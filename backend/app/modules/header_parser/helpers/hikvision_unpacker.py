@@ -32,18 +32,14 @@ class HikvisionHeaderUnpacker:
         frame_type_raw = chunk[6]
         is_keyframe = frame_type_raw == HIK_FRAME_TYPE_KEYFRAME
 
-        # Byte 7: Codec Type (0x01 = H264, 0x02 = H265, 0x03 = MPEG4, 0x04 = MJPEG)
+        # Byte 7: Codec Type (0x01 = H264, 0x02 = H265, 0x04 = MJPEG)
         codec_raw = chunk[7]
         if codec_raw == 0x02:
             stream_format = VideoCodec.H265
-        elif codec_raw == 0x01:
-            stream_format = VideoCodec.H264
-        elif codec_raw == 0x03:
-            stream_format = VideoCodec.MPEG4
         elif codec_raw == 0x04:
             stream_format = VideoCodec.MJPEG
         else:
-            stream_format = VideoCodec.H264  # Default fallback
+            stream_format = VideoCodec.H264  # Default H264 fallback
 
         # Bytes 8-11: Payload length in bytes (uint32 LE)
         payload_length = struct.unpack("<I", chunk[8:12])[0]

@@ -26,13 +26,6 @@ export interface CameraChannel {
   is_active: boolean;
 }
 
-export interface PlayheadState {
-  currentTime: string; // ISO string UTC (e.g. 2026-08-30T14:02:15.000Z)
-  isPlaying: boolean;
-  playbackSpeed: number;
-  selectedCamera: number | null;
-}
-
 export interface CameraTileSync {
   clip_id: string | null;
   seek_offset_seconds: number;

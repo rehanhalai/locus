@@ -3,14 +3,26 @@ import { useNavigate } from "react-router-dom";
 import { FolderOpen, Activity, AlertCircle, Clock, ChevronDown } from "lucide-react";
 import { SidebarTrigger } from "../ui/sidebar";
 import { useCaseStore } from "../../stores/useCaseStore";
-import { useCase } from "../../context/CaseContext";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../../api/client";
 import { format } from "date-fns";
 
 export function Topbar() {
   const navigate = useNavigate();
-  const { activeCaseId, activeCaseNumber, activeCaseName, backendOnline } = useCase();
+  const activeCaseId = useCaseStore((s) => s.activeCaseId);
+  const activeCaseNumber = useCaseStore((s) => s.activeCaseNumber);
+  const activeCaseName = useCaseStore((s) => s.activeCaseName);
   const runningTasks = useCaseStore((s) => s.runningTasks);
   const toggleTaskDrawer = useCaseStore((s) => s.toggleTaskDrawer);
+
+  const { data: healthData } = useQuery({
+    queryKey: ["backend-health"],
+    queryFn: () => api.checkHealth(),
+    refetchInterval: 10000,
+    staleTime: 5000,
+  });
+
+  const backendOnline = healthData?.status === "online";
 
   const [utcTime, setUtcTime] = useState<string>("");
 

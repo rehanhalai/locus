@@ -22,7 +22,7 @@ class MasterSectorIndexer:
     def __init__(self, sector_size: int = 512):
         self.sector_size = sector_size
 
-    def select_unpacker(self, brand: DVRBrand):
+    def select_unpacker(self, brand: DVRBrand, file_path: str | None = None):
         """Returns the appropriate header unpacker strategy for the detected DVR brand."""
         if brand in (DVRBrand.DAHUA, DVRBrand.CP_PLUS):
             return DahuaHeaderUnpacker()
@@ -30,8 +30,22 @@ class MasterSectorIndexer:
             return HikvisionHeaderUnpacker()
         elif brand == DVRBrand.WFS_GENERIC:
             return WFSHeaderUnpacker()
-        else:
-            return RawStreamHeaderUnpacker()
+
+        # If brand is UNKNOWN or unanalyzed, auto-probe the file header signatures
+        if file_path and os.path.exists(file_path):
+            try:
+                with open(file_path, "rb") as f:
+                    probe_buf = f.read(min(os.path.getsize(file_path), 512 * 4096))
+                    if b"DHAV" in probe_buf:
+                        return DahuaHeaderUnpacker()
+                    if b"HKFS" in probe_buf or b"HIKB" in probe_buf:
+                        return HikvisionHeaderUnpacker()
+                    if b"WFS" in probe_buf or b"WFS4" in probe_buf:
+                        return WFSHeaderUnpacker()
+            except Exception:
+                pass
+
+        return RawStreamHeaderUnpacker()
 
     def index_partition(
         self,
@@ -52,7 +66,7 @@ class MasterSectorIndexer:
         if scan_total_sectors <= 0:
             return []
 
-        unpacker = self.select_unpacker(brand)
+        unpacker = self.select_unpacker(brand, file_path)
         chunks: list[SectorChunkInfo] = []
 
         # Active open chunks by camera_id: camera_id -> dict
@@ -102,13 +116,14 @@ class MasterSectorIndexer:
                         if cam_id in active_chunks:
                             active = active_chunks[cam_id]
                             time_diff = abs((frame.timestamp - active["end_time"]).total_seconds())
+                            payload_sectors = max(1, frame.payload_size // self.sector_size)
 
                             # If same camera is contiguous and within time tolerance, extend current chunk
                             if (
-                                sector_offset <= active["end_sector"] + 32
+                                sector_offset <= active["end_sector"] + payload_sectors + 128
                                 and time_diff <= TIME_GAP_THRESHOLD_SECONDS
                             ):
-                                active["end_sector"] = max(active["end_sector"], sector_offset)
+                                active["end_sector"] = max(active["end_sector"], sector_offset + payload_sectors)
                                 active["end_time"] = max(active["end_time"], frame.timestamp)
                                 active["frame_count"] += 1
                                 if frame.is_keyframe:
