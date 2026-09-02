@@ -8,7 +8,8 @@
     "dev:frontend": "pnpm --filter frontend dev",
     "dev": "concurrently -k -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
     "setup:backend": "cd backend && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt",
-    "setup": "pnpm install && pnpm run setup:backend"
+    "setup": "pnpm install && pnpm run setup:backend",
+    "db:reset": "./scripts/reset.sh"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
