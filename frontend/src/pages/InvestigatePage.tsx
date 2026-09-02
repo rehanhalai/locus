@@ -43,6 +43,9 @@ export function InvestigatePage() {
   const setActiveEvidenceId = useCaseStore((s) => s.setActiveEvidenceId);
   const focusedCameraId = useCaseStore((s) => s.focusedCameraId);
   const setFocusedCameraId = useCaseStore((s) => s.setFocusedCameraId);
+  const setTimelineBounds = useCaseStore((s) => s.setTimelineBounds);
+  const setMasterPlayheadTime = useCaseStore((s) => s.setMasterPlayheadTime);
+  const masterPlayheadTime = useCaseStore((s) => s.masterPlayheadTime);
 
   // 1. Fetch case details to find attached evidence
   const { data: caseDetails } = useQuery({
@@ -86,6 +89,29 @@ export function InvestigatePage() {
     }
     return map;
   }, [carvedData]);
+
+  // Synchronize master timeline bounds to match the carved evidence duration
+  useEffect(() => {
+    if (carvedData?.clips && carvedData.clips.length > 0) {
+      const times = carvedData.clips.flatMap((c) => [
+        new Date(c.start_time).getTime(),
+        new Date(c.end_time).getTime(),
+      ]);
+      const validTimes = times.filter((t) => !isNaN(t));
+      if (validTimes.length > 0) {
+        const minT = Math.min(...validTimes);
+        const maxT = Math.max(...validTimes);
+        const startIso = new Date(minT).toISOString();
+        const endIso = new Date(maxT).toISOString();
+        setTimelineBounds(startIso, endIso);
+
+        const currentMs = new Date(masterPlayheadTime).getTime();
+        if (isNaN(currentMs) || currentMs < minT || currentMs > maxT) {
+          setMasterPlayheadTime(startIso);
+        }
+      }
+    }
+  }, [carvedData, setTimelineBounds, setMasterPlayheadTime, masterPlayheadTime]);
 
   const activeClipsCount = Object.keys(cameraClipsMap).length;
 

@@ -104,6 +104,27 @@ export function CameraTile({
     v.playbackRate = playbackSpeed;
   }, [playbackSpeed]);
 
+  // Sync video playhead position (seeking & timeline scrubbing)
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !clip) return;
+
+    const playheadMs = new Date(masterPlayheadTime).getTime();
+    const clipStartMs = new Date(clip.start_time).getTime();
+    if (isNaN(playheadMs) || isNaN(clipStartMs)) return;
+
+    const targetSeconds = Math.max(0, (playheadMs - clipStartMs) / 1000 + offsetSeconds);
+
+    // Only adjust currentTime if playhead has drifted or user scrubbed/seeked (> 0.35s)
+    if (Math.abs(v.currentTime - targetSeconds) > 0.35) {
+      if (v.duration && !isNaN(v.duration)) {
+        v.currentTime = Math.min(v.duration, targetSeconds);
+      } else {
+        v.currentTime = targetSeconds;
+      }
+    }
+  }, [masterPlayheadTime, clip, offsetSeconds]);
+
   const handleLoadedMetadata = () => {
     const v = videoRef.current;
     if (v) {

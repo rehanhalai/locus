@@ -103,11 +103,13 @@ def get_carved_results(
         res = CarverService.get_clips_for_evidence(db=db, evidence_id=evidence_id)
         base_url = str(request.base_url).rstrip("/")
 
-        # Attach stream URL to each clip
+        # Attach stream URL and duration to each clip
         clips_out = []
         for c in res["clips"]:
             clip_dict = CarvedClipResponse.model_validate(c)
             clip_dict.stream_url = f"{base_url}/api/v1/carver/stream/{c.id}"
+            if c.start_time and c.end_time:
+                clip_dict.duration_seconds = max(1.0, (c.end_time - c.start_time).total_seconds())
             clips_out.append(clip_dict)
 
         return {
