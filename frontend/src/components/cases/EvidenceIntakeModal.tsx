@@ -34,7 +34,21 @@ import { useCaseStore } from "../../stores/useCaseStore";
 import { useNavigate } from "react-router-dom";
 import { ServerFilePickerModal } from "./ServerFilePickerModal";
 
-const ALLOWED_EXTENSIONS = [".dd", ".raw", ".img", ".bin", ".iso", ".001", ".dav", ".mp4", ".h264"];
+const ALLOWED_EXTENSIONS = [
+  ".dd",
+  ".raw",
+  ".img",
+  ".bin",
+  ".iso",
+  ".001",
+  ".dav",
+  ".mp4",
+  ".h264",
+  ".e01",
+  ".e02",
+  ".ewf",
+  "ewf1",
+];
 
 interface EvidenceIntakeModalProps {
   open: boolean;
@@ -127,6 +141,8 @@ export function EvidenceIntakeModal({
 
   const validateFileExtension = (pathOrName: string): boolean => {
     const lower = pathOrName.toLowerCase();
+    const basename = lower.split("/").pop() || lower;
+    if (basename.startsWith("ewf")) return true;
     return ALLOWED_EXTENSIONS.some((ext) => lower.endsWith(ext));
   };
 

@@ -7,12 +7,15 @@ export interface SSETaskProgressData {
   stage?: string;
   status?: string;
   type?: string;
+  percent?: number;
   percentage?: number;
   progress_percent?: number;
   progress?: number;
+  speed?: string | number;
   speed_mbps?: number;
   speed_mb_s?: number;
   rate_mb_s?: number;
+  processed_bytes?: number;
   bytes_processed?: number;
   total_bytes?: number;
   sha256?: string;
@@ -77,8 +80,26 @@ export function useTaskSSE<T extends SSETaskProgressData = SSETaskProgressData>(
     const streamUrl = endpoint || `/acquisition/stream/${taskId}`;
     const unsubscribe = subscribeSSE<T>(streamUrl, {
       onMessage: (data) => {
-        const pct = data.percentage ?? data.progress_percent ?? data.progress ?? 0;
-        const speed = data.speed_mbps ?? data.speed_mb_s ?? data.rate_mb_s ?? 0;
+        let pct = data.percent ?? data.percentage ?? data.progress_percent ?? data.progress;
+        if (pct === undefined || pct === null) {
+          const proc = data.processed_bytes ?? data.bytes_processed;
+          const tot = data.total_bytes;
+          if (proc !== undefined && tot && tot > 0) {
+            pct = (proc / tot) * 100;
+          } else {
+            pct = 0;
+          }
+        }
+
+        let speed = 0;
+        if (typeof data.speed === "number") {
+          speed = data.speed;
+        } else if (typeof data.speed === "string") {
+          speed = parseFloat(data.speed) || 0;
+        } else {
+          speed = data.speed_mbps ?? data.speed_mb_s ?? data.rate_mb_s ?? 0;
+        }
+
         const currentStage = data.stage ?? data.status ?? "PROCESSING";
         const msg = data.message ?? data.status_message ?? "";
 
@@ -89,7 +110,9 @@ export function useTaskSSE<T extends SSETaskProgressData = SSETaskProgressData>(
         if (msg) setMessage(msg);
 
         const isDone =
-          currentStage === "DONE" || currentStage === "COMPLETED" || data.type === "COMPLETED";
+          currentStage === "DONE" ||
+          currentStage === "COMPLETED" ||
+          data.type === "COMPLETED";
 
         addOrUpdateTask({
           task_id: taskId,

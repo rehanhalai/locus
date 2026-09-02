@@ -522,6 +522,10 @@ class AcquisitionService:
             ".mkv",
             ".h264",
             ".264",
+            ".e01",
+            ".e02",
+            ".e03",
+            ".ewf",
         }
 
         # 1. Determine target directory
@@ -562,7 +566,11 @@ class AcquisitionService:
                 try:
                     is_directory = item.is_dir()
                     ext = item.suffix.lower() if not is_directory else None
-                    is_forensic = ext in forensic_exts if ext else False
+                    is_forensic = not is_directory and (
+                        (ext in forensic_exts if ext else False)
+                        or item.name.lower().startswith("ewf")
+                        or item.name.lower().endswith(".001")
+                    )
 
                     size_str = None
                     size_bytes = None

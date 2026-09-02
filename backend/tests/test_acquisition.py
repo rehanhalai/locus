@@ -318,3 +318,13 @@ async def test_concurrent_ingestion_tasks(client):
 
     client.delete(f"/api/v1/cases/{c1}")
     client.delete(f"/api/v1/cases/{c2}")
+
+
+def test_browse_filesystem_includes_forensic_and_ewf(client):
+    res = client.get("/api/v1/acquisition/browse-fs")
+    assert res.status_code == 200
+    data = res.json()
+    assert "current_path" in data
+    assert "entries" in data
+    assert "shortcuts" in data
+

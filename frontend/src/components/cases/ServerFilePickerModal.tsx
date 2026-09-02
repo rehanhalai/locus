@@ -199,16 +199,26 @@ export function ServerFilePickerModal({
                 Supported Types
               </p>
               <div className="flex flex-wrap gap-1 mt-1.5">
-                {[".dd", ".raw", ".img", ".bin", ".iso", ".001", ".dav", ".mp4", ".h264"].map(
-                  (ext) => (
-                    <span
-                      key={ext}
-                      className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-secondary border border-border text-muted-foreground"
-                    >
-                      {ext}
-                    </span>
-                  )
-                )}
+                {[
+                  ".dd",
+                  ".raw",
+                  ".img",
+                  ".bin",
+                  ".iso",
+                  ".001",
+                  ".e01",
+                  "ewf1",
+                  ".dav",
+                  ".mp4",
+                  ".h264",
+                ].map((ext) => (
+                  <span
+                    key={ext}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-secondary border border-border text-muted-foreground"
+                  >
+                    {ext}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
