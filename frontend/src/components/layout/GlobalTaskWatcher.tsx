@@ -46,7 +46,7 @@ export function GlobalTaskWatcher() {
     const unsubscribers = activeTasks.map((task) => {
       let streamUrl = `/acquisition/stream/${task.task_id}`;
       if (task.type === "carving" || task.task_id.startsWith("carve_")) {
-        streamUrl = `/header_parser/stream/${task.task_id}`;
+        streamUrl = `/carver/progress/${task.task_id}`;
       } else if (task.type === "identification" || task.task_id.startsWith("ident_")) {
         streamUrl = `/identification/stream/${task.task_id}`;
       }

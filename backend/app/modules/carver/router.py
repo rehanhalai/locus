@@ -211,14 +211,8 @@ async def stream_carving_progress(task_id: str):
             detail=f"Carving task '{task_id}' not found.",
         )
 
-    async def event_generator():
-        async for event in task_manager.subscribe(task_id):
-            yield f"data: {json.dumps(event)}\n\n"
-            if event.get("stage") in ["DONE", "ERROR", "COMPLETED"]:
-                break
-
     return StreamingResponse(
-        event_generator(),
+        task_manager.subscribe(task_id),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

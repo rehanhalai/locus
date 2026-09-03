@@ -8,9 +8,14 @@ import {
   RefreshCw,
   HardDrive,
   Zap,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  X,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
+import { Progress } from "../components/ui/progress";
 import { useCaseStore } from "../stores/useCaseStore";
 import { CameraTile } from "../components/player/CameraTile";
 import { TimelineScrubber } from "../components/player/TimelineScrubber";
@@ -18,6 +23,7 @@ import { CalibrationModal } from "../components/player/CalibrationModal";
 import { useQuery } from "@tanstack/react-query";
 import { casesApi } from "../api/cases";
 import { videoApi } from "../api/video";
+import { subscribeSSE } from "../api/sse";
 import { useNavigate } from "react-router-dom";
 import type { CarvedClip } from "../types/video";
 
@@ -46,6 +52,35 @@ export function InvestigatePage() {
   const setTimelineBounds = useCaseStore((s) => s.setTimelineBounds);
   const setMasterPlayheadTime = useCaseStore((s) => s.setMasterPlayheadTime);
   const masterPlayheadTime = useCaseStore((s) => s.masterPlayheadTime);
+  const runningTasks = useCaseStore((s) => s.runningTasks);
+  const addOrUpdateTask = useCaseStore((s) => s.addOrUpdateTask);
+  const removeTask = useCaseStore((s) => s.removeTask);
+  const [isModalDismissed, setIsModalDismissed] = useState(false);
+
+  const activeCarveTask = runningTasks.find(
+    (t) =>
+      (t.type === "carving" || t.task_id.startsWith("carve_")) &&
+      (t.status === "PROCESSING" || t.status === "PENDING")
+  );
+
+  const setActiveCase = useCaseStore((s) => s.setActiveCase);
+
+  // Auto-discover valid cases
+  const { data: casesList } = useQuery({
+    queryKey: ["cases"],
+    queryFn: () => casesApi.listCases(),
+  });
+
+  // Auto-heal active case if current activeCaseId is stale/deleted
+  useEffect(() => {
+    if (casesList && casesList.length > 0) {
+      const exists = casesList.some((c) => c.id === activeCaseId);
+      if (!activeCaseId || !exists) {
+        const fallback = casesList[casesList.length - 1];
+        setActiveCase(fallback.id, fallback.case_number, fallback.case_name);
+      }
+    }
+  }, [casesList, activeCaseId, setActiveCase]);
 
   // 1. Fetch case details to find attached evidence
   const { data: caseDetails } = useQuery({
@@ -54,10 +89,11 @@ export function InvestigatePage() {
     enabled: !!activeCaseId,
   });
 
-  // Auto-select first evidence file if not yet active
+  // Auto-select valid evidence file if current activeEvidenceId is stale or not in case
   useEffect(() => {
     if (caseDetails?.evidence_files && caseDetails.evidence_files.length > 0) {
-      if (!activeEvidenceId) {
+      const evExists = caseDetails.evidence_files.some((e) => e.id === activeEvidenceId);
+      if (!activeEvidenceId || !evExists) {
         setActiveEvidenceId(caseDetails.evidence_files[0].id);
       }
     }
@@ -115,23 +151,88 @@ export function InvestigatePage() {
 
   const activeClipsCount = Object.keys(cameraClipsMap).length;
 
+  // Auto-clean any stale carving task if all feeds are already carved and available
+  useEffect(() => {
+    if (activeClipsCount > 0 && activeCarveTask && !isCarving) {
+      removeTask(activeCarveTask.task_id);
+    }
+  }, [activeClipsCount, activeCarveTask, isCarving, removeTask]);
+
+  // Direct SSE listener for the carving task
+  useEffect(() => {
+    if (!activeCarveTask?.task_id) return;
+
+    const unsub = subscribeSSE<{
+      type?: string;
+      status?: string;
+      stage?: string;
+      percent?: number;
+      progress_percent?: number;
+      percentage?: number;
+      message?: string;
+    }>(`/carver/progress/${activeCarveTask.task_id}`, {
+      onMessage: (data) => {
+        const pct = data.percent ?? data.progress_percent ?? data.percentage;
+        const isDone =
+          data.type === "COMPLETED" ||
+          data.status === "COMPLETED" ||
+          data.stage === "COMPLETED" ||
+          (pct !== undefined && pct >= 100);
+
+        addOrUpdateTask({
+          task_id: activeCarveTask.task_id,
+          type: "carving",
+          title: "Multi-Camera Video Carving",
+          status: isDone ? "COMPLETED" : "PROCESSING",
+          progress_percent:
+            pct !== undefined ? Math.min(100, Math.round(pct)) : (activeCarveTask.progress_percent || 10),
+          message: data.message || "Carving camera streams...",
+          started_at: activeCarveTask.started_at,
+        });
+
+        if (isDone) {
+          setIsCarving(false);
+          refetchClips();
+        }
+      },
+      onComplete: () => {
+        setIsCarving(false);
+        refetchClips();
+      },
+      onError: () => {
+        // Fallback refetch in case task ended
+        refetchClips();
+      },
+    });
+
+    return () => unsub();
+  }, [activeCarveTask?.task_id, addOrUpdateTask, refetchClips]);
+
+  // Auto-refresh feeds when carving task completes
+  useEffect(() => {
+    if (!activeCarveTask && isCarving) {
+      setIsCarving(false);
+      refetchClips();
+    }
+  }, [activeCarveTask, isCarving, refetchClips]);
+
   const handleCarveAll = async () => {
     if (!activeEvidenceId || isCarving) return;
     try {
       setIsCarving(true);
-      await videoApi.carveAllClips({ evidence_id: activeEvidenceId });
-      // Poll for completion
-      const interval = setInterval(async () => {
-        const res = await refetchClips();
-        if (res.data?.clips && res.data.clips.length > 0) {
-          clearInterval(interval);
-          setIsCarving(false);
-        }
-      }, 2000);
-      setTimeout(() => {
-        clearInterval(interval);
-        setIsCarving(false);
-      }, 30000);
+      setIsModalDismissed(false);
+      const res = await videoApi.carveAllClips({ evidence_id: activeEvidenceId });
+      if (res?.task_id) {
+        addOrUpdateTask({
+          task_id: res.task_id,
+          type: "carving",
+          title: "Multi-Camera Video Carving",
+          status: "PROCESSING",
+          progress_percent: 5,
+          message: "Scanning FAT32 directory & demuxing packets...",
+          started_at: new Date().toISOString(),
+        });
+      }
     } catch {
       setIsCarving(false);
     }
@@ -345,7 +446,6 @@ export function InvestigatePage() {
           setCalibrationModalOpen(true);
         }}
       />
-
       {/* Clock Drift Calibration Modal */}
       <CalibrationModal
         open={calibrationModalOpen}
@@ -353,6 +453,101 @@ export function InvestigatePage() {
         evidenceId={activeEvidenceId || ""}
         initialCameraId={calibratingCameraId}
       />
+
+      {/* Active Carving Progress Modal Overlay */}
+      {!isModalDismissed && (isCarving || activeCarveTask) && activeClipsCount === 0 && (
+        <div className="absolute inset-0 z-50 bg-background/85 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200 select-none">
+          <div className="w-full max-w-lg bg-card border border-border shadow-2xl rounded-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                  <Radio className="size-5 animate-pulse text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold tracking-tight text-foreground flex items-center gap-2">
+                    <span>Carving Video Feeds</span>
+                    <span className="font-mono text-primary text-sm font-semibold">
+                      {activeCarveTask?.progress_percent || 10}%
+                    </span>
+                  </h3>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Demuxing raw DVR packets & generating H.264 streams
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="icon-xs"
+                variant="ghost"
+                onClick={() => setIsModalDismissed(true)}
+                className="text-muted-foreground hover:text-foreground shrink-0"
+                title="Dismiss overlay"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+
+            {/* Glowing Animated Progress Bar */}
+            <div className="space-y-2">
+              <Progress
+                value={activeCarveTask?.progress_percent || 10}
+                className="h-2.5 bg-secondary"
+              />
+              <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
+                <span className="flex items-center gap-1.5 text-foreground/90 font-medium truncate">
+                  <RefreshCw className="size-3 animate-spin text-primary shrink-0" />
+                  {activeCarveTask?.message || "Transcoding elementary video streams..."}
+                </span>
+              </div>
+            </div>
+
+            {/* Camera Channels Status Grid */}
+            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/60">
+              {[
+                { id: 1, name: "Main Entrance" },
+                { id: 2, name: "Cash Counter" },
+                { id: 3, name: "Vault Area" },
+                { id: 4, name: "Street Perimeter" },
+              ].map((c) => {
+                const isDone = (activeCarveTask?.progress_percent || 0) >= (c.id * 20 + 15);
+                const isCurrent =
+                  !isDone &&
+                  (activeCarveTask?.message?.includes(`Camera ${c.id}`) ||
+                    (activeCarveTask?.progress_percent || 0) >= ((c.id - 1) * 20 + 10));
+
+                return (
+                  <div
+                    key={c.id}
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-mono transition-colors ${
+                      isDone
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                        : isCurrent
+                          ? "bg-primary/10 border-primary/40 text-primary ring-1 ring-primary/20"
+                          : "bg-secondary/40 border-border/60 text-muted-foreground/60"
+                    }`}
+                  >
+                    <span className="truncate">CH {c.id} · {c.name}</span>
+                    {isDone ? (
+                      <CheckCircle2 className="size-3.5 text-emerald-400 shrink-0" />
+                    ) : isCurrent ? (
+                      <RefreshCw className="size-3 animate-spin text-primary shrink-0" />
+                    ) : (
+                      <Clock className="size-3 text-muted-foreground/40 shrink-0" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Forensic Safe Notice */}
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2.5 flex items-start gap-2 text-[11px] text-amber-300">
+              <AlertCircle className="size-4 shrink-0 text-amber-400 mt-0.5" />
+              <span>
+                Please do not close or reload. Elementary NAL units are being transcoded with static keyframes (<code className="font-mono text-amber-200">+faststart</code>) for smooth timeline scrubbing.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
