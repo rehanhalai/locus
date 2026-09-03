@@ -19,26 +19,32 @@ export const analyticsApi = {
 
   // Flow 07: Sub-second Event Search
   searchEvents: (evidenceId: string, filter?: EventFilter) => {
-    const params: Record<string, string | number | undefined> = {};
+    const params = new URLSearchParams();
+
     if (filter?.camera_id !== undefined && filter.camera_id !== null) {
-      params.camera_id = filter.camera_id;
+      params.append("camera_id", String(filter.camera_id));
     }
     if (filter?.min_confidence !== undefined) {
-      params.min_confidence = filter.min_confidence;
+      params.append("min_confidence", String(filter.min_confidence));
     }
     if (filter?.start_time) {
-      params.start_time = filter.start_time;
+      params.append("start_time", filter.start_time);
     }
     if (filter?.end_time) {
-      params.end_time = filter.end_time;
+      params.append("end_time", filter.end_time);
     }
-
-    let url = `/analytics/events/${evidenceId}`;
+    if (filter?.limit !== undefined) {
+      params.append("limit", String(filter.limit));
+    }
+    if (filter?.offset !== undefined) {
+      params.append("offset", String(filter.offset));
+    }
     if (filter?.labels && filter.labels.length > 0) {
-      const labelParams = filter.labels.map((l) => `labels=${encodeURIComponent(l)}`).join("&");
-      url += `?${labelParams}`;
+      filter.labels.forEach((l) => params.append("labels", l));
     }
 
-    return api.get<EventSearchResponse>(url, params);
+    const qs = params.toString();
+    const url = `/analytics/events/${evidenceId}${qs ? `?${qs}` : ""}`;
+    return api.get<EventSearchResponse>(url);
   },
 };

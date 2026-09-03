@@ -1,11 +1,13 @@
 """REST API endpoints for Local AI Video Analytics, SSE progress tracking, and event search."""
 
+import asyncio
 import json
 from collections.abc import AsyncGenerator
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.db.models import EventLabel
@@ -98,11 +100,13 @@ def search_timeline_events(
     min_confidence: float = Query(0.0, ge=0.0, le=1.0, description="Minimum confidence threshold"),
     start_time: datetime | None = Query(None, description="Filter events after this time"),
     end_time: datetime | None = Query(None, description="Filter events before this time"),
+    limit: int = Query(60, ge=1, le=500, description="Maximum number of events to return"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
     db: Session = Depends(get_db),
 ):
     """Searches indexed timeline events matching filter parameters."""
     try:
-        events = AnalyticsService.search_events(
+        total_count, events = AnalyticsService.search_events(
             db=db,
             evidence_id=evidence_id,
             camera_id=camera_id,
@@ -110,12 +114,49 @@ def search_timeline_events(
             min_confidence=min_confidence,
             start_time=start_time,
             end_time=end_time,
+            limit=limit,
+            offset=offset,
         )
         serialized_events = [TimelineEventResponse.model_validate(e) for e in events]
         return EventSearchResponse(
             evidence_id=evidence_id,
-            total_events=len(serialized_events),
+            total_events=total_count,
             events=serialized_events,
         )
     except KeyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+_frame_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="cv2_thumb")
+
+
+@router.get(
+    "/events/{event_id}/frame",
+    summary="Extract detection frame with bounding box overlay",
+    description="Returns the JPEG video frame for this detection event, optionally drawing the bounding box and label tag on the subject.",
+)
+async def get_event_frame(
+    event_id: str,
+    draw_bbox: bool = Query(True, description="Draw bounding box over subject"),
+    db: Session = Depends(get_db),
+):
+    """Returns video frame JPEG with bounding box overlay without blocking the async event loop."""
+    loop = asyncio.get_running_loop()
+    jpeg_bytes = await loop.run_in_executor(
+        _frame_executor,
+        AnalyticsService.extract_event_frame,
+        db,
+        event_id,
+        draw_bbox,
+    )
+    if not jpeg_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Frame for event '{event_id}' could not be extracted.",
+        )
+
+    return Response(
+        content=jpeg_bytes,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
