@@ -4,7 +4,7 @@
   "private": true,
   "description": "Multi-Vendor DVR/NVR Forensic Analysis Tool for Standardized Acquisition, Recovery, and Analysis of Surveillance Evidence.",
   "scripts": {
-    "dev:backend": "cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000",
+    "dev:backend": "cd backend && uv run uvicorn app.main:app --reload --port 8000",
     "dev:frontend": "pnpm --filter frontend dev",
     "dev": "concurrently -k -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
     "setup:backend": "cd backend && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt",
