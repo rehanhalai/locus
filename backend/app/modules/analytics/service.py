@@ -244,16 +244,42 @@ class AnalyticsService:
                                     events_to_insert.append(evt)
                                     total_events_count += 1
 
+                        # Periodic flush and event loop yield (prevents blocking HTTP requests/health check)
+                        if len(events_to_insert) >= 30:
+                            db.add_all(events_to_insert)
+                            db.commit()
+                            events_to_insert.clear()
+
+                            clip_ratio = min(1.0, float(current_frame_idx / max(1, frame_count)))
+                            intra_progress = round(
+                                ((clip_idx + clip_ratio) / float(total_clips)) * 100.0, 1
+                            )
+                            await cls._update_task_progress(
+                                task_id,
+                                status="PROCESSING",
+                                current_clip=clip.id,
+                                processed_clips=clip_idx,
+                                total_clips=total_clips,
+                                processed_frames=total_frames_processed,
+                                total_frames=total_frames_processed,
+                                events_detected=total_events_count,
+                                progress_percent=intra_progress,
+                            )
+
+                        # Yield control back to Uvicorn event loop so /health and other requests respond instantly
+                        await asyncio.sleep(0)
+
                     current_frame_idx += 1
 
                 cap.release()
 
-                # Flush batch into SQLite
+                # Flush remaining batch into SQLite
                 if events_to_insert:
                     db.add_all(events_to_insert)
                     db.commit()
+                    events_to_insert.clear()
 
-                # Update progress
+                # Update progress at clip boundary
                 progress = round(((clip_idx + 1) / float(total_clips)) * 100.0, 1)
                 await cls._update_task_progress(
                     task_id,
@@ -266,7 +292,7 @@ class AnalyticsService:
                     events_detected=total_events_count,
                     progress_percent=progress,
                 )
-                await asyncio.sleep(0.001)
+                await asyncio.sleep(0.005)
 
             # 5. Persist Forensic Chain-of-Custody Audit Log
             audit = AuditLog(
@@ -346,7 +372,9 @@ class AnalyticsService:
         min_confidence: float = 0.0,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
-    ) -> list[TimelineEvent]:
+        limit: int = 60,
+        offset: int = 0,
+    ) -> tuple[int, list[TimelineEvent]]:
         """Queries indexed forensic timeline events with flexible parameter filtering."""
         evidence = db.query(EvidenceFiles).filter(EvidenceFiles.id == evidence_id).first()
         if not evidence:
@@ -369,4 +397,103 @@ class AnalyticsService:
         if end_time:
             query = query.filter(TimelineEvent.timestamp <= ensure_utc(end_time))
 
-        return query.order_by(TimelineEvent.timestamp).all()
+        total_count = query.count()
+        events = query.order_by(TimelineEvent.timestamp).offset(offset).limit(limit).all()
+        return total_count, events
+
+    @classmethod
+    def extract_event_frame(
+        cls,
+        db: Session,
+        event_id: str,
+        draw_bbox: bool = True,
+    ) -> bytes | None:
+        """Extracts the video frame JPEG for a timeline detection event, optionally drawing the bounding box."""
+        import os
+
+        cache_dir = os.path.abspath("data/cache/thumbnails")
+        os.makedirs(cache_dir, exist_ok=True)
+        cache_path = os.path.join(cache_dir, f"{event_id}_{1 if draw_bbox else 0}.jpg")
+
+        # Fast path: Serve directly from disk cache without querying SQLite
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path, "rb") as f:
+                    return f.read()
+            except Exception:
+                pass
+
+        event = db.query(TimelineEvent).filter(TimelineEvent.id == event_id).first()
+        if not event:
+            return None
+
+        clip = db.query(CarvedClip).filter(CarvedClip.id == event.clip_id).first()
+        if not clip or not os.path.exists(clip.file_path):
+            return None
+
+        cap = cv2.VideoCapture(clip.file_path)
+        if not cap.isOpened():
+            return None
+
+        frame_idx = event.frame_number or 0
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+        ret, frame = cap.read()
+        cap.release()
+
+        if not ret or frame is None:
+            return None
+
+        if draw_bbox:
+            h, w, _ = frame.shape
+            x1 = max(0, min(w - 1, int(event.bbox_x * w)))
+            y1 = max(0, min(h - 1, int(event.bbox_y * h)))
+            x2 = max(0, min(w - 1, int((event.bbox_x + event.bbox_w) * w)))
+            y2 = max(0, min(h - 1, int((event.bbox_y + event.bbox_h) * h)))
+
+            # Color scheme: BGR
+            color = (113, 204, 46)  # Emerald green for persons
+            if event.label in ["car", "truck", "bus", "motorcycle", "bicycle"]:
+                color = (219, 152, 52)  # Sky blue for vehicles
+            elif event.label in ["backpack", "handbag", "suitcase"]:
+                color = (18, 156, 243)  # Amber for bags
+            elif event.label in ["motion", "motion_void"]:
+                color = (182, 89, 155)  # Purple for motion
+
+            # Draw outer rectangle
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+
+            # Label pill
+            label_text = f"{event.label.upper()} {int(event.confidence * 100)}%"
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.45
+            thickness = 1
+            (tw, th), _ = cv2.getTextSize(label_text, font, font_scale, thickness)
+
+            # Text background pill
+            pill_y1 = max(0, y1 - th - 6)
+            pill_y2 = y1
+            pill_x2 = min(w, x1 + tw + 8)
+            cv2.rectangle(frame, (x1, pill_y1), (pill_x2, pill_y2), color, -1)
+            cv2.putText(
+                frame,
+                label_text,
+                (x1 + 4, pill_y2 - 3),
+                font,
+                font_scale,
+                (0, 0, 0),
+                thickness,
+                cv2.LINE_AA,
+            )
+
+        ret_enc, jpeg_buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        if not ret_enc:
+            return None
+
+        jpeg_bytes = jpeg_buf.tobytes()
+        try:
+            with open(cache_path, "wb") as f:
+                f.write(jpeg_bytes)
+        except Exception:
+            pass
+
+        return jpeg_bytes

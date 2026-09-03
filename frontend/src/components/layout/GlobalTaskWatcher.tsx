@@ -58,6 +58,8 @@ export function GlobalTaskWatcher() {
         streamUrl = `/carver/progress/${task.task_id}`;
       } else if (task.type === "identification" || task.task_id.startsWith("ident_")) {
         streamUrl = `/identification/stream/${task.task_id}`;
+      } else if (task.type === "analytics" || task.task_id.startsWith("task_ai_")) {
+        streamUrl = `/analytics/progress/${task.task_id}`;
       }
 
       return subscribeSSE<SSEMessageData>(streamUrl, {
