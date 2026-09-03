@@ -8,14 +8,17 @@
     "dev:frontend": "pnpm --filter frontend dev",
     "dev:electron": "wait-on http://localhost:5173 && electron .",
     "dev": "concurrently -k -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
-    "dev:desktop": "concurrently -k -n \"BACKEND,FRONTEND,DESKTOP\" -c \"blue,green,magenta\" \"pnpm run dev:backend\" \"pnpm run dev:frontend\" \"pnpm run dev:electron\"",
+    "dev:desktop": "concurrently -k -n \"FRONTEND,DESKTOP\" -c \"green,magenta\" \"pnpm run dev:frontend\" \"pnpm run dev:electron\"",
     "setup:backend": "cd backend && uv sync",
     "setup": "pnpm install && pnpm run setup:backend",
     "lint:backend": "cd backend && uv run ruff check .",
     "lint": "pnpm --filter frontend lint && pnpm run lint:backend",
     "format:backend": "cd backend && uv run ruff format .",
     "format": "pnpm --filter frontend format && pnpm run format:backend",
-    "db:reset": "cd backend && uv run python scripts/reset_environment.py"
+    "db:reset": "cd backend && uv run python scripts/reset_environment.py",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:backend": "cd backend && rm -rf build dist && uv run pyinstaller --name locus-backend --onefile --collect-submodules app --add-data \"bin:bin\" --add-data \"app/modules/analytics/models:app/modules/analytics/models\" run.py",
+    "build:desktop": "pnpm run build:frontend && pnpm run build:backend && npx electron-builder"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

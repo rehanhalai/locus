@@ -31,7 +31,8 @@ backend/data/
 # Large Third-Party Binaries (>100MB)
 backend/bin/windows/ffmpeg.exe
 
-
+build
+dist_desktop
 
 # OS / IDE
 .DS_Store

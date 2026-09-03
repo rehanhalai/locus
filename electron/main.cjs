@@ -1,5 +1,7 @@
-const { app, BrowserWindow, Menu } = require("electron");
+const { app, BrowserWindow } = require("electron");
 const path = require("path");
+const { spawn } = require("child_process");
+const http = require("http")
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -16,11 +18,11 @@ function createWindow() {
     },
   });
 
-  const devServerUrl = process.env.VITE_DEV_SERVER_URL || "http://localhost:5173";
-  const isDev = process.env.NODE_ENV !== "production";
+  
+  const isDev = !app.isPackaged
 
   if (isDev) {
-    win.loadURL(devServerUrl);
+    win.loadURL("http://localhost:5173");
   } else {
     win.loadFile(path.join(__dirname, "../frontend/dist/index.html"));
   }
@@ -34,7 +36,46 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+
+  const backendPath = app.isPackaged
+    ? path.join(process.resourcesPath, "backend", "locus-backend")
+    : path.join(__dirname, "../backend/dist/locus-backend");
+
+  console.log("Backend path:", backendPath);
+
+  const backend = spawn(
+    backendPath,
+    [],
+    {
+      stdio: "inherit",
+    }
+  );
+
+  backend.on("error", (error) => {
+    console.error("Failed to start backend:", error);
+  });
+
+  app.on("before-quit", () => {
+    backend.kill();
+  });
+
+  function waitForBackend() {
+    return new Promise((resolve) => {
+      const check = () => {
+        const req = http.get("http://localhost:8000", () => {
+          resolve();
+        });
+
+      req.on("error", () => {
+        setTimeout(check, 200);
+      });
+    };
+
+    check();
+  });
+}
+  await waitForBackend()
   createWindow();
 
   app.on("activate", () => {

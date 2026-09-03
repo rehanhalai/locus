@@ -1,0 +1,37 @@
+appId: com.locus.forensics
+productName: LOCUS
+copyright: Copyright © 2026 Rehan Halai
+
+directories:
+  output: dist_desktop
+  buildResources: electron
+
+files:
+  - "electron/**/*"
+  - "frontend/dist/**/*"
+  - "backend/dist/locus-backend"
+
+extraResources:
+  - from: "backend/dist/locus-backend"
+    to: "backend/locus-backend"
+
+win:
+  target:
+    - target: dir
+      arch:
+        - x64
+    - target: zip
+      arch:
+        - x64
+  icon: electron/icon.ico
+
+linux:
+  target:
+    - target: dir
+      arch:
+        - x64
+    - target: AppImage
+      arch:
+        - x64
+  icon: electron/icon.png
+  category: Utility
