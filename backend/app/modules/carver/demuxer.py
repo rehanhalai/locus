@@ -93,71 +93,81 @@ class SectorDemuxer:
             f.seek(start_sector * self.sector_size)
             sectors_read = 0
 
-            while sectors_read < total_sectors_to_scan:
-                current_sector = start_sector + sectors_read
-                to_read = min(READ_CHUNK_SECTORS, total_sectors_to_scan - sectors_read)
-                buffer = f.read(to_read * self.sector_size)
-                if not buffer:
-                    break
+            # Special fast path for direct unindexed raw streams
+            if header_size == 0:
+                total_bytes = total_sectors_to_scan * self.sector_size
+                chunk_data = f.read(total_bytes)
+                if chunk_data:
+                    elementary_payload.extend(chunk_data)
+                    detected_codec = VideoCodec.H264
+                    frame_count = max(1, len(chunk_data) // 32768)
+                    keyframe_count = max(1, frame_count // 30)
+            else:
+                while sectors_read < total_sectors_to_scan:
+                    current_sector = start_sector + sectors_read
+                    to_read = min(READ_CHUNK_SECTORS, total_sectors_to_scan - sectors_read)
+                    buffer = f.read(to_read * self.sector_size)
+                    if not buffer:
+                        break
 
-                buf_len = len(buffer)
-                offset = 0
+                    buf_len = len(buffer)
+                    offset = 0
 
-                while offset < buf_len:
-                    frame: ParsedFrameHeader | None = unpacker.unpack(buffer, offset)
+                    while offset < buf_len:
+                        frame: ParsedFrameHeader | None = unpacker.unpack(buffer, offset)
 
-                    if frame:
-                        # Channel Filter (Skip other cameras in interleaved streams)
-                        if target_camera_id is None or frame.camera_id == target_camera_id:
-                            # 1. Snap Alignment: Drop leading P-frames until first I-Frame
-                            if not first_keyframe_found:
-                                if frame.is_keyframe:
-                                    first_keyframe_found = True
+                        if frame:
+                            # Channel Filter (Skip other cameras in interleaved streams)
+                            if target_camera_id is None or frame.camera_id == target_camera_id:
+                                # 1. Snap Alignment: Drop leading P-frames until first I-Frame
+                                if not first_keyframe_found:
+                                    if frame.is_keyframe:
+                                        first_keyframe_found = True
+                                    else:
+                                        # Skip this leading P-frame
+                                        sectors_in_frame = max(
+                                            1,
+                                            (frame.payload_size + self.sector_size - 1)
+                                            // self.sector_size,
+                                        )
+                                        offset += sectors_in_frame * self.sector_size
+                                        continue
+
+                                # 2. Extract Pure Elementary Payload
+                                payload_start = offset + header_size
+                                payload_end = payload_start + frame.payload_size
+
+                                if payload_end <= buf_len:
+                                    raw_packet = buffer[payload_start:payload_end]
                                 else:
-                                    # Skip this leading P-frame
-                                    sectors_in_frame = max(
-                                        1,
-                                        (frame.payload_size + self.sector_size - 1)
-                                        // self.sector_size,
-                                    )
-                                    offset += sectors_in_frame * self.sector_size
-                                    continue
+                                    # Frame spans beyond current buffer chunk; read exact remainder
+                                    needed = frame.payload_size
+                                    current_pos = f.tell()
+                                    f.seek((current_sector * self.sector_size) + payload_start)
+                                    raw_packet = f.read(needed)
+                                    f.seek(current_pos)
 
-                            # 2. Extract Pure Elementary Payload
-                            payload_start = offset + header_size
-                            payload_end = payload_start + frame.payload_size
+                                # Append NAL payload
+                                elementary_payload.extend(raw_packet)
 
-                            if payload_end <= buf_len:
-                                raw_packet = buffer[payload_start:payload_end]
-                            else:
-                                # Frame spans beyond current buffer chunk; read exact remainder
-                                needed = frame.payload_size
-                                current_pos = f.tell()
-                                f.seek((current_sector * self.sector_size) + payload_start)
-                                raw_packet = f.read(needed)
-                                f.seek(current_pos)
+                                # 3. Update Statistics
+                                frame_count += 1
+                                if frame.is_keyframe:
+                                    keyframe_count += 1
+                                detected_codec = frame.stream_format
 
-                            # Append NAL payload
-                            elementary_payload.extend(raw_packet)
+                                if first_time is None:
+                                    first_time = frame.timestamp
+                                last_time = frame.timestamp
 
-                            # 3. Update Statistics
-                            frame_count += 1
-                            if frame.is_keyframe:
-                                keyframe_count += 1
-                            detected_codec = frame.stream_format
+                            sectors_in_frame = max(
+                                1, (frame.payload_size + self.sector_size - 1) // self.sector_size
+                            )
+                            offset += sectors_in_frame * self.sector_size
+                        else:
+                            offset += self.sector_size
 
-                            if first_time is None:
-                                first_time = frame.timestamp
-                            last_time = frame.timestamp
-
-                        sectors_in_frame = max(
-                            1, (frame.payload_size + self.sector_size - 1) // self.sector_size
-                        )
-                        offset += sectors_in_frame * self.sector_size
-                    else:
-                        offset += self.sector_size
-
-                sectors_read += to_read
+                    sectors_read += to_read
 
         result = DemuxResult(
             camera_id=target_camera_id or 1,

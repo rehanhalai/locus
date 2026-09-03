@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   HardDrive,
@@ -29,38 +29,32 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Progress } from "../ui/progress";
 import { casesApi } from "../../api/cases";
-import { subscribeSSE } from "../../api/sse";
+import { useTaskSSE } from "../../hooks/useSSE";
 import { useCaseStore } from "../../stores/useCaseStore";
 import { useNavigate } from "react-router-dom";
 import { ServerFilePickerModal } from "./ServerFilePickerModal";
 
-const ALLOWED_EXTENSIONS = [".dd", ".raw", ".img", ".bin", ".iso", ".001", ".e01", ".vmdk", ".vhd"];
+const ALLOWED_EXTENSIONS = [
+  ".dd",
+  ".raw",
+  ".img",
+  ".bin",
+  ".iso",
+  ".001",
+  ".dav",
+  ".mp4",
+  ".h264",
+  ".e01",
+  ".e02",
+  ".ewf",
+  "ewf1",
+];
 
 interface EvidenceIntakeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   caseId: string;
   caseNumber: string;
-}
-
-interface SSEAcquisitionEvent {
-  stage?: string;
-  status?: string;
-  type?: string;
-  exit_code?: number;
-  percentage?: number;
-  progress_percent?: number;
-  speed_mbps?: number;
-  speed_mb_s?: number;
-  rate_mb_s?: number;
-  bytes_processed?: number;
-  total_bytes?: number;
-  sha256?: string;
-  md5?: string;
-  evidence_id?: string;
-  message?: string;
-  error?: string;
-  device_brand?: string;
 }
 
 export function EvidenceIntakeModal({
@@ -72,7 +66,8 @@ export function EvidenceIntakeModal({
   const navigate = useNavigate();
   const investigatorName = useCaseStore((s) => s.investigatorName);
   const setActiveEvidenceId = useCaseStore((s) => s.setActiveEvidenceId);
-  const addOrUpdateTask = useCaseStore((s) => s.addOrUpdateTask);
+  const activeIntakeState = useCaseStore((s) => s.activeIntakeState);
+  const setActiveIntakeState = useCaseStore((s) => s.setActiveIntakeState);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -88,25 +83,66 @@ export function EvidenceIntakeModal({
 
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [progress, setProgress] = useState<number>(0);
-  const [speedMbps, setSpeedMbps] = useState<number>(0);
-  const [stage, setStage] = useState<string>("IDLE");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [sha256Hash, setSha256Hash] = useState<string | null>(null);
   const [md5Hash, setMd5Hash] = useState<string | null>(null);
   const [deviceBrand, setDeviceBrand] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
+  // Restore active intake task state across page reloads
+  useEffect(() => {
+    if (open && activeIntakeState && activeIntakeState.caseId === caseId) {
+      queueMicrotask(() => {
+        setTaskId(activeIntakeState.taskId);
+        setIsProcessing(true);
+        if (activeIntakeState.filePath) {
+          setFilePath(activeIntakeState.filePath);
+          setSelectedFileName(activeIntakeState.filePath.split("/").pop() || null);
+        }
+      });
+    }
+  }, [open, activeIntakeState, caseId]);
+
   // Live Query to detect real system block devices from backend API
   const { data: detectedDevices = [], isLoading: isLoadingDevices } = useQuery({
     queryKey: ["system-block-devices"],
     queryFn: () => casesApi.listDevices(),
-    enabled: open,
-    staleTime: 10000,
+    enabled: open && !isProcessing,
+    staleTime: 60000,
+  });
+
+  // Real-time SSE acquisition progress and task drawer tracking
+  const sse = useTaskSSE({
+    taskId,
+    taskType: "ingestion",
+    title:
+      tab === "image"
+        ? `Ingesting ${filePath.split("/").pop() || "Forensic Image"}`
+        : `dc3dd Clone ${sourceDevice === "custom" ? customDevice : sourceDevice}`,
+    onMessage: (data) => {
+      if (data.sha256) setSha256Hash(data.sha256);
+      if (data.md5) setMd5Hash(data.md5);
+      if (data.evidence_id) setActiveEvidenceId(data.evidence_id);
+      if (data.device_brand) setDeviceBrand(data.device_brand);
+    },
+    onComplete: () => {
+      setActiveIntakeState(null);
+    },
+    onError: (err) => {
+      setIsProcessing(false);
+      setActiveIntakeState(null);
+      setApiError(
+        err.message.includes("dc3dd")
+          ? `dc3dd Clone Failed: ${err.message}. Ensure the target device is connected, unmounted, and locus has read permissions.`
+          : `Acquisition Failed: ${err.message}`
+      );
+    },
   });
 
   const validateFileExtension = (pathOrName: string): boolean => {
     const lower = pathOrName.toLowerCase();
+    const basename = lower.split("/").pop() || lower;
+    if (basename.startsWith("ewf")) return true;
     return ALLOWED_EXTENSIONS.some((ext) => lower.endsWith(ext));
   };
 
@@ -168,8 +204,6 @@ export function EvidenceIntakeModal({
     }
 
     setIsProcessing(true);
-    setProgress(0);
-    setStage("INITIALIZING");
     setStatusMessage("Connecting to low-level forensic disk acquisition engine...");
 
     try {
@@ -197,91 +231,49 @@ export function EvidenceIntakeModal({
 
       setTaskId(res.task_id);
       setActiveEvidenceId(res.evidence_id);
-
-      addOrUpdateTask({
-        task_id: res.task_id,
-        type: "ingestion",
-        title:
-          tab === "image"
-            ? `Ingesting ${filePath.split("/").pop() || "Forensic Image"}`
-            : `dc3dd Clone ${sourceDevice === "custom" ? customDevice : sourceDevice}`,
-        status: "PROCESSING",
-        progress_percent: 0,
-        started_at: new Date().toISOString(),
-      });
-
-      // 2. Subscribe to real-time SSE stream with failure detection
-      subscribeSSE<SSEAcquisitionEvent>(`/acquisition/stream/${res.task_id}`, {
-        onMessage: (data) => {
-          const pct = data.percentage ?? data.progress_percent ?? 0;
-          const spd = data.speed_mbps ?? data.speed_mb_s ?? data.rate_mb_s ?? 0;
-          const currentStage = data.stage ?? data.status ?? "INGESTING";
-
-          setProgress(Math.min(100, Math.max(0, Math.round(pct))));
-          setSpeedMbps(spd);
-          setStage(currentStage);
-          if (data.message) setStatusMessage(data.message);
-
-          const hash256 = data.sha256;
-          const hashMd5 = data.md5;
-          if (hash256) setSha256Hash(hash256);
-          if (hashMd5) setMd5Hash(hashMd5);
-          if (data.evidence_id) setActiveEvidenceId(data.evidence_id);
-          if (data.device_brand) setDeviceBrand(data.device_brand);
-          if (data.type === "COMPLETED" || data.status === "COMPLETED") {
-            setProgress(100);
-            setStage("COMPLETED");
-          }
-
-          addOrUpdateTask({
-            task_id: res.task_id,
-            type: "ingestion",
-            title:
-              tab === "image"
-                ? `Ingesting ${filePath.split("/").pop() || "Forensic Image"}`
-                : `dc3dd Clone ${sourceDevice === "custom" ? customDevice : sourceDevice}`,
-            status:
-              currentStage === "DONE" || currentStage === "COMPLETED" ? "COMPLETED" : "PROCESSING",
-            progress_percent: Math.min(100, Math.max(0, Math.round(pct))),
-            speed_mbps: spd,
-            message: data.message,
-            started_at: new Date().toISOString(),
-          });
-        },
-        onComplete: () => {
-          setProgress(100);
-          setStage("COMPLETED");
-          setStatusMessage("Evidence ingestion & dual-hashing complete. Ready for analysis.");
-        },
-        onError: (err) => {
-          setIsProcessing(false);
-          setApiError(
-            err.message.includes("dc3dd")
-              ? `dc3dd Clone Failed: ${err.message}. Ensure the target device is connected, unmounted, and locus has read permissions.`
-              : `Acquisition Failed: ${err.message}`
-          );
-        },
+      setActiveIntakeState({
+        caseId,
+        caseNumber,
+        taskId: res.task_id,
+        filePath: tab === "image" ? filePath.trim() : undefined,
       });
     } catch (err: unknown) {
       setIsProcessing(false);
+      setActiveIntakeState(null);
       setApiError(err instanceof Error ? err.message : "Failed to initiate acquisition.");
     }
   };
 
   const handleProceedToWorkspace = () => {
+    setActiveIntakeState(null);
     onOpenChange(false);
     navigate("/investigate");
   };
 
   const handleReset = () => {
     setIsProcessing(false);
-    setProgress(0);
-    setStage("IDLE");
+    setTaskId(null);
+    setActiveIntakeState(null);
     setApiError(null);
   };
 
+  const isCompleted = sse.stage === "COMPLETED" || sse.stage === "DONE" || sse.isCompleted;
+
+  useEffect(() => {
+    if (isCompleted) {
+      setActiveIntakeState(null);
+    }
+  }, [isCompleted, setActiveIntakeState]);
+
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setActiveIntakeState(null);
+    }
+    onOpenChange(nextOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-xl bg-card border-border">
         <DialogHeader>
           <div className="flex items-center gap-2.5">
@@ -352,8 +344,10 @@ export function EvidenceIntakeModal({
                       onChange={(e) => {
                         setFilePath(e.target.value);
                         setSelectedFileName(null);
+                        setSelectedFileSize(null);
+                        setApiError(null);
                       }}
-                      placeholder="e.g. /evidence/cases/cctv_dump_raw.dd"
+                      placeholder="/home/evidence/case_001.dd or browse..."
                       className="font-mono text-xs flex-1"
                     />
                     <Button
@@ -361,22 +355,32 @@ export function EvidenceIntakeModal({
                       variant="outline"
                       size="sm"
                       onClick={() => setExplorerOpen(true)}
-                      className="gap-1.5 shrink-0 text-xs font-medium border-primary/30 hover:border-primary text-foreground"
+                      className="gap-1 text-xs shrink-0"
+                      title="Browse server forensic directories"
                     >
                       <FolderSearch className="size-3.5 text-primary" />
-                      Browse Machine...
+                      Browse Server...
                     </Button>
                   </div>
 
                   {selectedFileName && (
-                    <div className="p-2 rounded bg-secondary/50 border border-border text-[11px] font-mono flex items-center justify-between">
-                      <span className="text-primary font-bold truncate">{selectedFileName}</span>
-                      <span className="text-muted-foreground shrink-0">{selectedFileSize}</span>
+                    <div className="p-2.5 rounded-lg bg-secondary/70 border border-border text-xs flex items-center justify-between">
+                      <div className="flex items-center gap-2 truncate">
+                        <FileCode2 className="size-3.5 text-primary shrink-0" />
+                        <span className="font-mono text-foreground truncate">
+                          {selectedFileName}
+                        </span>
+                      </div>
+                      {selectedFileSize && (
+                        <span className="font-mono text-muted-foreground text-[11px] shrink-0">
+                          {selectedFileSize}
+                        </span>
+                      )}
                     </div>
                   )}
 
                   <p className="text-[11px] text-muted-foreground">
-                    Supports bitstream disk dumps (.dd, .raw, .img, .bin, .iso, .001, .e01).
+                    Supports raw bitstream disk dumps (.dd, .raw, .img, .bin, .iso, .001, .dav).
                     Computes simultaneous SHA-256 + MD5.
                   </p>
                 </div>
@@ -384,15 +388,15 @@ export function EvidenceIntakeModal({
 
               {/* Tab 2: Physical Device with Live Hardware Discovery */}
               <TabsContent value="device" className="space-y-3 pt-3">
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium text-foreground">
-                      Source Block Device *
+                      Source Physical Block Device *
                     </label>
-                    <span className="text-[10px] text-muted-foreground font-mono">
+                    <span className="text-[10px] font-mono text-muted-foreground">
                       {isLoadingDevices
-                        ? "Scanning drives..."
-                        : `${detectedDevices.length} drive(s) detected`}
+                        ? "Scanning devices..."
+                        : `${detectedDevices.length} detected`}
                     </span>
                   </div>
 
@@ -481,27 +485,34 @@ export function EvidenceIntakeModal({
             <div className="p-4 rounded-xl bg-secondary/60 border border-border space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {stage === "COMPLETED" || stage === "DONE" ? (
+                  {isCompleted ? (
                     <CheckCircle2 className="size-4 text-emerald-400" />
                   ) : (
                     <Activity className="size-4 text-cyan-400 animate-spin" />
                   )}
                   <span className="text-xs font-mono font-bold text-foreground">
-                    {stage} {progress}%
+                    {sse.stage}{" "}
+                    {typeof sse.progress === "number"
+                      ? sse.progress >= 1 || sse.progress === 0
+                        ? `${sse.progress.toFixed(1)}%`
+                        : `${sse.progress.toFixed(2)}%`
+                      : `${sse.progress}%`}
                   </span>
                 </div>
 
-                {speedMbps > 0 && (
+                {sse.speedMbps > 0 && (
                   <span className="text-xs font-mono text-cyan-400 font-semibold">
-                    {speedMbps.toFixed(1)} MB/s
+                    {sse.speedMbps.toFixed(1)} MB/s
                   </span>
                 )}
               </div>
 
-              <Progress value={progress} className="h-2" />
+              <Progress value={sse.progress} className="h-2" />
 
               <p className="text-xs text-muted-foreground font-mono">
-                {statusMessage || "Parsing sectors and calculating cryptographic hashes..."}
+                {sse.message ||
+                  statusMessage ||
+                  "Parsing sectors and calculating cryptographic hashes..."}
               </p>
             </div>
 

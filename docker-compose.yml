@@ -9,7 +9,7 @@ services:
       - ./backend:/app
       - /app/.venv
     environment:
-      - DATABASE_URL=sqlite:///./data/forensics.db
+      - DATABASE_URL=sqlite:///./data/locus.db
       - CORS_ORIGINS=http://localhost:5173
 
   frontend:

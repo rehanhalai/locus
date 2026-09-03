@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
@@ -57,6 +57,31 @@ export function CasesPage() {
   } | null>(null);
   const [editingCase, setEditingCase] = useState<Case | null>(null);
   const [deletingCase, setDeletingCase] = useState<Case | null>(null);
+
+  const runningTasks = useCaseStore((s) => s.runningTasks);
+  const activeIntakeState = useCaseStore((s) => s.activeIntakeState);
+
+  // Auto-restore Evidence Intake modal ONLY if an ingestion is ACTIVELY in progress (PROCESSING or PENDING)
+  useEffect(() => {
+    if (activeIntakeState && !intakeModalOpen) {
+      const matchingTask = runningTasks.find((t) => t.task_id === activeIntakeState.taskId);
+      if (
+        matchingTask &&
+        matchingTask.status !== "PROCESSING" &&
+        matchingTask.status !== "PENDING"
+      ) {
+        useCaseStore.getState().setActiveIntakeState(null);
+        return;
+      }
+      queueMicrotask(() => {
+        setTargetCaseForIntake({
+          id: activeIntakeState.caseId,
+          caseNumber: activeIntakeState.caseNumber,
+        });
+        setIntakeModalOpen(true);
+      });
+    }
+  }, [activeIntakeState, runningTasks, intakeModalOpen]);
 
   // TanStack Query for live case list
   const {

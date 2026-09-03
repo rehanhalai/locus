@@ -1,6 +1,5 @@
 """REST endpoints and HTTP 206 Partial Content video streaming for carved clips."""
 
-import json
 import os
 import re
 
@@ -103,11 +102,13 @@ def get_carved_results(
         res = CarverService.get_clips_for_evidence(db=db, evidence_id=evidence_id)
         base_url = str(request.base_url).rstrip("/")
 
-        # Attach stream URL to each clip
+        # Attach stream URL and duration to each clip
         clips_out = []
         for c in res["clips"]:
             clip_dict = CarvedClipResponse.model_validate(c)
             clip_dict.stream_url = f"{base_url}/api/v1/carver/stream/{c.id}"
+            if c.start_time and c.end_time:
+                clip_dict.duration_seconds = max(1.0, (c.end_time - c.start_time).total_seconds())
             clips_out.append(clip_dict)
 
         return {
@@ -209,14 +210,8 @@ async def stream_carving_progress(task_id: str):
             detail=f"Carving task '{task_id}' not found.",
         )
 
-    async def event_generator():
-        async for event in task_manager.subscribe(task_id):
-            yield f"data: {json.dumps(event)}\n\n"
-            if event.get("stage") in ["DONE", "ERROR", "COMPLETED"]:
-                break
-
     return StreamingResponse(
-        event_generator(),
+        task_manager.subscribe(task_id),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

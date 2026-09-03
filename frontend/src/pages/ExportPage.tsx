@@ -2,6 +2,14 @@ import { useState } from "react";
 import { Scale, Lock, Download, FileText, CheckCircle2, ShieldCheck } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../components/ui/table";
 
 export function ExportPage() {
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
@@ -116,23 +124,38 @@ export function ExportPage() {
         </h2>
 
         <div className="rounded-xl border border-border overflow-hidden bg-card">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-secondary/70 border-b border-border text-muted-foreground font-mono">
-              <tr>
-                <th className="py-3 px-4">Exported Clip</th>
-                <th className="py-3 px-4">Camera</th>
-                <th className="py-3 px-4">Time Range</th>
-                <th className="py-3 px-4">SHA-256 Hash Fingerprint</th>
-                <th className="py-3 px-4 text-right">Legal Artifacts</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60 font-mono">
+          <Table>
+            <TableHeader className="bg-secondary/70">
+              <TableRow className="border-border font-mono text-muted-foreground text-xs">
+                <TableHead className="py-3 px-4 font-mono text-xs text-muted-foreground">
+                  Exported Clip
+                </TableHead>
+                <TableHead className="py-3 px-4 font-mono text-xs text-muted-foreground">
+                  Camera
+                </TableHead>
+                <TableHead className="py-3 px-4 font-mono text-xs text-muted-foreground">
+                  Time Range
+                </TableHead>
+                <TableHead className="py-3 px-4 font-mono text-xs text-muted-foreground">
+                  SHA-256 Hash Fingerprint
+                </TableHead>
+                <TableHead className="py-3 px-4 font-mono text-xs text-muted-foreground text-right">
+                  Legal Artifacts
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-border/60 font-mono text-xs">
               {mockExports.map((exp) => (
-                <tr key={exp.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="py-3.5 px-4 font-semibold text-foreground">{exp.filename}</td>
-                  <td className="py-3.5 px-4 text-muted-foreground">{exp.camera}</td>
-                  <td className="py-3.5 px-4 text-primary">{exp.timeRange}</td>
-                  <td className="py-3.5 px-4">
+                <TableRow
+                  key={exp.id}
+                  className="border-border/60 hover:bg-muted/30 transition-colors"
+                >
+                  <TableCell className="py-3.5 px-4 font-semibold text-foreground">
+                    {exp.filename}
+                  </TableCell>
+                  <TableCell className="py-3.5 px-4 text-muted-foreground">{exp.camera}</TableCell>
+                  <TableCell className="py-3.5 px-4 text-primary">{exp.timeRange}</TableCell>
+                  <TableCell className="py-3.5 px-4">
                     <button
                       onClick={() => handleCopy(exp.sha256)}
                       className="text-[11px] text-muted-foreground hover:text-foreground transition-colors truncate max-w-[200px] block"
@@ -143,8 +166,8 @@ export function ExportPage() {
                         <span className="ml-1.5 text-emerald-400 font-bold">✓ Copied!</span>
                       )}
                     </button>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
+                  </TableCell>
+                  <TableCell className="py-3.5 px-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <Button variant="outline" size="xs" className="gap-1">
                         <Download className="size-3" />
@@ -159,11 +182,11 @@ export function ExportPage() {
                         .pdf
                       </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
     </div>

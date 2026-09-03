@@ -59,7 +59,6 @@ class DVRBrand(StrEnum):
 class VideoCodec(StrEnum):
     H264 = "H264"
     H265 = "H265"
-    MPEG4 = "MPEG4"
     MJPEG = "MJPEG"
     UNKNOWN = "UNKNOWN"
 

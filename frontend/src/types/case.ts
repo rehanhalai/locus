@@ -1,21 +1,4 @@
 export type CaseStatus = "ACTIVE" | "ARCHIVED" | "CLOSED";
-export type IntegrityStatus = "UNVERIFIED" | "VERIFIED" | "TAMPERED" | "CORRUPTED";
-
-export interface EvidenceFile {
-  id: string;
-  case_id: string;
-  filename: string;
-  source_path: string;
-  raw_image_path?: string;
-  file_size_bytes: number;
-  sha256_hash: string;
-  md5_hash: string;
-  device_brand?: string;
-  filesystem_type?: string;
-  is_carved: boolean;
-  is_indexed: boolean;
-  created_at: string;
-}
 
 export interface AuditLog {
   id: string;
@@ -25,6 +8,18 @@ export interface AuditLog {
   investigator: string;
   ip_address?: string;
   details?: Record<string, unknown> | string;
+}
+
+export interface EvidenceItem {
+  id: string;
+  source_type: string;
+  source_device?: string | null;
+  file_path: string;
+  file_size_bytes: number;
+  sha256_hash: string;
+  md5_hash: string;
+  bad_sectors_count: number;
+  created_at: string;
 }
 
 export interface Case {
@@ -37,8 +32,12 @@ export interface Case {
   created_at: string;
   updated_at: string;
   evidence_count?: number;
-  // evidence_files?: EvidenceFile[];
+  evidence_files?: EvidenceItem[];
   audit_logs?: AuditLog[];
+}
+
+export interface CaseDetail extends Case {
+  evidence_files: EvidenceItem[];
 }
 
 export interface CaseCreatePayload {

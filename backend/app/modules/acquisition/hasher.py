@@ -45,16 +45,23 @@ async def stream_file_hashes(
                 speed_mb_s = (bytes_delta / time_delta) / (1024 * 1024) if time_delta > 0 else 0.0
 
                 percent = (
-                    round((processed_bytes / total_size) * 100, 1) if total_size > 0 else 100.0
+                    round((processed_bytes / total_size) * 100, 2) if total_size > 0 else 100.0
                 )
+                processed_gb = processed_bytes / (1024 * 1024 * 1024)
+                total_gb = total_size / (1024 * 1024 * 1024)
 
                 yield {
                     "type": "PROGRESS",
                     "stage": "HASHING",
                     "percent": percent,
+                    "progress_percent": percent,
+                    "percentage": percent,
                     "speed": f"{speed_mb_s:.1f} MB/s",
+                    "speed_mbps": round(speed_mb_s, 1),
+                    "speed_mb_s": round(speed_mb_s, 1),
                     "processed_bytes": processed_bytes,
                     "total_bytes": total_size,
+                    "message": f"Computing SHA-256 & MD5 hashes: {processed_gb:.2f} GB / {total_gb:.2f} GB ({percent:.1f}%) @ {speed_mb_s:.1f} MB/s",
                 }
 
                 last_broadcast_time = current_time

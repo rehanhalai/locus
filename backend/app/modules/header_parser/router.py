@@ -1,7 +1,5 @@
 """FastAPI REST router and SSE streaming endpoints for Flow 03 Sector Header Parsing."""
 
-import json
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -85,14 +83,8 @@ async def stream_header_parsing_progress(task_id: str):
             detail=f"Indexing task '{task_id}' not found.",
         )
 
-    async def event_generator():
-        async for event in task_manager.subscribe(task_id):
-            yield f"data: {json.dumps(event)}\n\n"
-            if event.get("stage") in ["DONE", "ERROR", "COMPLETED"]:
-                break
-
     return StreamingResponse(
-        event_generator(),
+        task_manager.subscribe(task_id),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

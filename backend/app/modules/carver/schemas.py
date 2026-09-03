@@ -47,6 +47,7 @@ class CarvedClipResponse(BaseModel):
     camera_id: int
     start_time: datetime
     end_time: datetime
+    duration_seconds: float = 0.0
     start_sector: int
     end_sector: int
     codec: VideoCodec

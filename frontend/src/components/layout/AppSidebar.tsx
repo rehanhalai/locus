@@ -26,7 +26,6 @@ import {
   useSidebar,
 } from "../ui/sidebar";
 import { useCaseStore } from "../../stores/useCaseStore";
-import { useCase } from "../../context/CaseContext";
 
 interface NavRoom {
   id: string;
@@ -83,7 +82,9 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  const { activeCaseId, activeCaseNumber, activeCaseName } = useCase();
+  const activeCaseId = useCaseStore((s) => s.activeCaseId);
+  const activeCaseNumber = useCaseStore((s) => s.activeCaseNumber);
+  const activeCaseName = useCaseStore((s) => s.activeCaseName);
   const investigatorName = useCaseStore((s) => s.investigatorName);
   const activeEvidenceId = useCaseStore((s) => s.activeEvidenceId);
 
