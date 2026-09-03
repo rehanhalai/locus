@@ -2,11 +2,13 @@
   "name": "locus",
   "version": "0.1.0",
   "private": true,
-  "description": "Multi-Vendor DVR/NVR Forensic Analysis Tool for Standardized Acquisition, Recovery, and Analysis of Surveillance Evidence.",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev:backend": "cd backend && uv run uvicorn app.main:app --reload --port 8000",
     "dev:frontend": "pnpm --filter frontend dev",
+    "dev:electron": "wait-on http://localhost:5173 && electron .",
     "dev": "concurrently -k -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
+    "dev:desktop": "concurrently -k -n \"BACKEND,FRONTEND,DESKTOP\" -c \"blue,green,magenta\" \"pnpm run dev:backend\" \"pnpm run dev:frontend\" \"pnpm run dev:electron\"",
     "setup:backend": "cd backend && uv sync",
     "setup": "pnpm install && pnpm run setup:backend",
     "lint:backend": "cd backend && uv run ruff check .",
@@ -17,7 +19,9 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "electron": "^44.1.1",
+    "wait-on": "^9.1.0"
   },
   "repository": {
     "type": "git",
