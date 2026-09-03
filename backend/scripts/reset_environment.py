@@ -34,9 +34,7 @@ def reset_environment() -> None:
     db_filename = settings.DATABASE_URL.replace("sqlite:///", "").replace("./data/", "")
     db_candidates = [
         data_dir / db_filename,
-        data_dir / "locus.db",
-        data_dir / "forensics.db",
-        data_dir / "test.db",
+        data_dir / "locus.db"
     ]
 
     for db_path in set(db_candidates):
@@ -50,7 +48,7 @@ def reset_environment() -> None:
     print("✅ Database schema initialized successfully.")
 
     # 3. Purge and recreate all data directories
-    subdirs = ["carved_clips", "exports", "temp_streams", "reports", "storage"]
+    subdirs = ["cache","carved_clips", "exports", "temp_streams", "reports", "storage"]
     print("\n🧹 Purging case evidence, carved video streams, and exports...")
     for sub in subdirs:
         sub_path = data_dir / sub
