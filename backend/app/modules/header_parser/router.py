@@ -1,6 +1,5 @@
 """FastAPI REST router and SSE streaming endpoints for Flow 03 Sector Header Parsing."""
 
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session

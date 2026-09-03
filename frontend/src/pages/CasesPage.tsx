@@ -65,7 +65,11 @@ export function CasesPage() {
   useEffect(() => {
     if (activeIntakeState && !intakeModalOpen) {
       const matchingTask = runningTasks.find((t) => t.task_id === activeIntakeState.taskId);
-      if (matchingTask && matchingTask.status !== "PROCESSING" && matchingTask.status !== "PENDING") {
+      if (
+        matchingTask &&
+        matchingTask.status !== "PROCESSING" &&
+        matchingTask.status !== "PENDING"
+      ) {
         useCaseStore.getState().setActiveIntakeState(null);
         return;
       }

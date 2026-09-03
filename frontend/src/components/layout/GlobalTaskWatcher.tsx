@@ -37,7 +37,10 @@ export function GlobalTaskWatcher() {
 
   // Active jobs that need live SSE subscription
   const activeTasks = useMemo<BackgroundTask[]>(
-    () => runningTasks.filter((t: BackgroundTask) => t.status === "PROCESSING" || t.status === "PENDING"),
+    () =>
+      runningTasks.filter(
+        (t: BackgroundTask) => t.status === "PROCESSING" || t.status === "PENDING"
+      ),
     [runningTasks]
   );
   const activeTaskIds = useMemo(
@@ -147,7 +150,11 @@ export function GlobalTaskWatcher() {
             className="text-muted-foreground hover:text-foreground h-6 w-6"
             title={isMinimized ? "Expand" : "Minimize"}
           >
-            {isMinimized ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+            {isMinimized ? (
+              <ChevronUp className="size-3.5" />
+            ) : (
+              <ChevronDown className="size-3.5" />
+            )}
           </Button>
 
           <Button

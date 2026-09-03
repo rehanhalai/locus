@@ -185,7 +185,9 @@ export function InvestigatePage() {
           title: "Multi-Camera Video Carving",
           status: isDone ? "COMPLETED" : "PROCESSING",
           progress_percent:
-            pct !== undefined ? Math.min(100, Math.round(pct)) : (activeCarveTask.progress_percent || 10),
+            pct !== undefined
+              ? Math.min(100, Math.round(pct))
+              : activeCarveTask.progress_percent || 10,
           message: data.message || "Carving camera streams...",
           started_at: activeCarveTask.started_at,
         });
@@ -516,11 +518,11 @@ export function InvestigatePage() {
                 { id: 3, name: "Vault Area" },
                 { id: 4, name: "Street Perimeter" },
               ].map((c) => {
-                const isDone = (activeCarveTask?.progress_percent || 0) >= (c.id * 20 + 15);
+                const isDone = (activeCarveTask?.progress_percent || 0) >= c.id * 20 + 15;
                 const isCurrent =
                   !isDone &&
                   (activeCarveTask?.message?.includes(`Camera ${c.id}`) ||
-                    (activeCarveTask?.progress_percent || 0) >= ((c.id - 1) * 20 + 10));
+                    (activeCarveTask?.progress_percent || 0) >= (c.id - 1) * 20 + 10);
 
                 return (
                   <div
@@ -533,7 +535,9 @@ export function InvestigatePage() {
                           : "bg-secondary/40 border-border/60 text-muted-foreground/60"
                     }`}
                   >
-                    <span className="truncate">CH {c.id} · {c.name}</span>
+                    <span className="truncate">
+                      CH {c.id} · {c.name}
+                    </span>
                     {isDone ? (
                       <CheckCircle2 className="size-3.5 text-emerald-400 shrink-0" />
                     ) : isCurrent ? (
@@ -550,7 +554,9 @@ export function InvestigatePage() {
             <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2.5 flex items-start gap-2 text-[11px] text-amber-300">
               <AlertCircle className="size-4 shrink-0 text-amber-400 mt-0.5" />
               <span>
-                Please do not close or reload. Elementary NAL units are being transcoded with static keyframes (<code className="font-mono text-amber-200">+faststart</code>) for smooth timeline scrubbing.
+                Please do not close or reload. Elementary NAL units are being transcoded with static
+                keyframes (<code className="font-mono text-amber-200">+faststart</code>) for smooth
+                timeline scrubbing.
               </span>
             </div>
           </div>

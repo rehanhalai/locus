@@ -32,7 +32,9 @@ interface CaseStoreState {
   setActiveCase: (caseId: string | null, caseNumber?: string, caseName?: string) => void;
   setActiveEvidenceId: (evidenceId: string | null) => void;
   setActiveRoom: (room: RoomId) => void;
-  setActiveIntakeState: (state: { caseId: string; caseNumber: string; taskId: string; filePath?: string } | null) => void;
+  setActiveIntakeState: (
+    state: { caseId: string; caseNumber: string; taskId: string; filePath?: string } | null
+  ) => void;
   setTaskDrawerOpen: (open: boolean) => void;
   toggleTaskDrawer: () => void;
   setInvestigatorName: (name: string) => void;
