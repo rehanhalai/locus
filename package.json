@@ -1,23 +1,33 @@
 {
   "name": "locus",
   "version": "0.1.0",
+  "description": "LOCUS Multi-Vendor DVR/NVR Forensic Workstation",
+  "desktopName": "locus.desktop",
   "private": true,
-  "description": "Multi-Vendor DVR/NVR Forensic Analysis Tool for Standardized Acquisition, Recovery, and Analysis of Surveillance Evidence.",
+  "main": "electron/main.cjs",
   "scripts": {
-    "dev:backend": "cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000",
+    "dev:backend": "cd backend && uv run uvicorn app.main:app --reload --port 8000",
     "dev:frontend": "pnpm --filter frontend dev",
+    "dev:electron": "wait-on http://localhost:5173 && electron .",
     "dev": "concurrently -k -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
-    "setup:backend": "cd backend && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt",
+    "dev:desktop": "concurrently -k -n \"FRONTEND,DESKTOP\" -c \"green,magenta\" \"pnpm run dev:frontend\" \"pnpm run dev:electron\"",
+    "setup:backend": "cd backend && uv sync",
     "setup": "pnpm install && pnpm run setup:backend",
     "lint:backend": "cd backend && uv run ruff check .",
     "lint": "pnpm --filter frontend lint && pnpm run lint:backend",
     "format:backend": "cd backend && uv run ruff format .",
     "format": "pnpm --filter frontend format && pnpm run format:backend",
-    "db:reset": "./scripts/reset.sh"
+    "db:reset": "cd backend && uv run python scripts/reset_environment.py",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:backend": "cd backend && uv run pyinstaller --clean locus-backend.spec",
+    "build:backend:linux": "cd backend && rm -rf build dist && uv run pyinstaller --name locus-backend --onefile --collect-submodules app --add-data \"bin:bin\" --add-data \"app/modules/analytics/models:app/modules/analytics/models\" run.py",
+    "build:desktop": "pnpm run build:frontend && pnpm run build:backend && npx electron-builder"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "electron": "^44.1.1",
+    "wait-on": "^9.1.0"
   },
   "repository": {
     "type": "git",

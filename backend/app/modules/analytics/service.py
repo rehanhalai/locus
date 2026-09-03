@@ -1,6 +1,7 @@
 """Service layer for AI video analytics, motion gating, and timeline event indexing."""
 
 import asyncio
+import os
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -9,6 +10,7 @@ import cv2
 import numpy as np
 from sqlalchemy.orm import Session
 
+from app.core.paths import get_cache_dir, get_carved_clips_dir
 from app.db import session as db_session
 from app.db.models import (
     AuditLog,
@@ -154,7 +156,18 @@ class AnalyticsService:
                 if motion_detector:
                     motion_detector.reset()
 
-                cap = cv2.VideoCapture(clip.file_path)
+                clip_path = clip.file_path
+                if not os.path.exists(clip_path):
+                    fallback = str(get_carved_clips_dir() / clip.evidence_id / f"{clip.id}.mp4")
+                    if os.path.exists(fallback):
+                        clip_path = fallback
+                        clip.file_path = fallback
+                        try:
+                            db.commit()
+                        except Exception:
+                            db.rollback()
+
+                cap = cv2.VideoCapture(clip_path)
                 if not cap.isOpened():
                     continue
 
@@ -408,10 +421,7 @@ class AnalyticsService:
         event_id: str,
         draw_bbox: bool = True,
     ) -> bytes | None:
-        """Extracts the video frame JPEG for a timeline detection event, optionally drawing the bounding box."""
-        import os
-
-        cache_dir = os.path.abspath("data/cache/thumbnails")
+        cache_dir = str(get_cache_dir() / "thumbnails")
         os.makedirs(cache_dir, exist_ok=True)
         cache_path = os.path.join(cache_dir, f"{event_id}_{1 if draw_bbox else 0}.jpg")
 
@@ -428,10 +438,23 @@ class AnalyticsService:
             return None
 
         clip = db.query(CarvedClip).filter(CarvedClip.id == event.clip_id).first()
-        if not clip or not os.path.exists(clip.file_path):
+        if not clip:
             return None
 
-        cap = cv2.VideoCapture(clip.file_path)
+        clip_path = clip.file_path
+        if not os.path.exists(clip_path):
+            fallback = str(get_carved_clips_dir() / clip.evidence_id / f"{clip.id}.mp4")
+            if os.path.exists(fallback):
+                clip_path = fallback
+                clip.file_path = fallback
+                try:
+                    db.commit()
+                except Exception:
+                    db.rollback()
+            else:
+                return None
+
+        cap = cv2.VideoCapture(clip_path)
         if not cap.isOpened():
             return None
 

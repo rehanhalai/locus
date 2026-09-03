@@ -84,13 +84,32 @@ def download_exported_video(
 ):
     """Downloads the exported .mp4 video file."""
     exp = ExportService.get_export_by_id(db, export_id)
-    if not exp or not os.path.exists(exp.exported_file_path):
+    if not exp:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Exported video for '{export_id}' not found on disk.",
+            detail=f"Export '{export_id}' not found.",
         )
+
+    file_path = exp.exported_file_path
+    if not os.path.exists(file_path):
+        from app.core.paths import get_exports_dir
+
+        fallback_path = str(get_exports_dir() / exp.id / exp.exported_filename)
+        if os.path.exists(fallback_path):
+            file_path = fallback_path
+            exp.exported_file_path = fallback_path
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Exported video for '{export_id}' not found on disk.",
+            )
+
     return FileResponse(
-        path=exp.exported_file_path,
+        path=file_path,
         media_type="video/mp4",
         filename=exp.exported_filename,
     )

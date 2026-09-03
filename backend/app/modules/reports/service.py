@@ -1,13 +1,12 @@
 """Service layer for generating case dossier PDF reports and summary analytics."""
 
 import os
-import tempfile
 import uuid
 from datetime import UTC, datetime
-from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from app.core.paths import get_reports_dir
 from app.db.models import (
     AuditLog,
     CarvedClip,
@@ -45,7 +44,7 @@ class ReportsService:
         timestamp_str = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         filename = f"Locus_Report_{safe_case_num}_{timestamp_str}.pdf"
 
-        report_dir = Path(tempfile.gettempdir()) / "locus_reports" / report_id
+        report_dir = get_reports_dir() / report_id
         report_dir.mkdir(parents=True, exist_ok=True)
         pdf_path = str(report_dir / filename)
 

@@ -3,7 +3,16 @@
 import os
 import platform
 import shutil
+import sys
 from pathlib import Path
+
+
+def get_base_dir() -> Path:
+    if getattr(sys, "frozen", False):
+        # PyInstaller bundled root
+        return Path(getattr(sys, "_MEIPASS", sys.executable)).resolve()
+    # Development backend/ root
+    return Path(__file__).resolve().parents[3]
 
 
 def get_ffmpeg_path() -> str:
@@ -13,7 +22,7 @@ def get_ffmpeg_path() -> str:
     1. Local standalone bundled binary: backend/bin/linux/ffmpeg or backend/bin/windows/ffmpeg.exe (Zero external dependencies)
     2. System environment $PATH (/usr/bin/ffmpeg or ffmpeg.exe)
     """
-    base_dir = Path(__file__).resolve().parents[3]
+    base_dir = get_base_dir()
     current_os = platform.system().lower()
 
     if current_os == "windows":
@@ -22,8 +31,14 @@ def get_ffmpeg_path() -> str:
         binary_path = base_dir / "bin" / "linux" / "ffmpeg"
 
     # 1. Local bundled standalone binary
-    if binary_path.exists() and os.access(binary_path, os.X_OK):
-        return str(binary_path)
+    if binary_path.exists():
+        if not os.access(binary_path, os.X_OK):
+            try:
+                os.chmod(binary_path, 0o755)
+            except Exception:
+                pass
+        if os.access(binary_path, os.X_OK):
+            return str(binary_path)
 
     # 2. System environment $PATH fallback
     system_bin = shutil.which("ffmpeg.exe" if current_os == "windows" else "ffmpeg")

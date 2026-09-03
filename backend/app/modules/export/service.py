@@ -4,7 +4,6 @@ import hashlib
 import hmac
 import json
 import os
-import tempfile
 import uuid
 import zipfile
 from datetime import UTC, datetime, timedelta
@@ -148,14 +147,30 @@ class ExportService:
             filename += ".mp4"
 
         # Determine export storage directory
-        export_dir = Path(tempfile.gettempdir()) / "locus_exports" / export_id
+        from app.core.paths import get_carved_clips_dir, get_exports_dir
+
+        export_dir = get_exports_dir() / export_id
         export_dir.mkdir(parents=True, exist_ok=True)
         video_out_path = str(export_dir / filename)
         manifest_out_path = str(export_dir / f"{filename[:-4]}.sync.json")
 
+        # Resolve primary clip input path with fallback
+        input_clip_path = primary_clip.file_path
+        if not os.path.exists(input_clip_path):
+            fallback_clip = str(
+                get_carved_clips_dir() / primary_clip.evidence_id / f"{primary_clip.id}.mp4"
+            )
+            if os.path.exists(fallback_clip):
+                input_clip_path = fallback_clip
+                primary_clip.file_path = fallback_clip
+                try:
+                    db.commit()
+                except Exception:
+                    db.rollback()
+
         # 4. Perform zero-transcode slice with static FFmpeg
         sha256_hash, md5_hash, file_size = slice_video_stream(
-            input_path=primary_clip.file_path,
+            input_path=input_clip_path,
             output_path=video_out_path,
             start_seconds=slice_start_rel,
             duration_seconds=slice_duration,

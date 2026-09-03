@@ -37,7 +37,6 @@ export function subscribeSSE<T = Record<string, unknown>>(
         const eventType = String(obj.type || "").toUpperCase();
         const status = String(obj.status || "").toUpperCase();
         const stage = String(obj.stage || "").toUpperCase();
-        const percent = Number(obj.percent ?? obj.progress_percent ?? obj.percentage ?? 0);
         const exitCode = typeof obj.exit_code === "number" ? obj.exit_code : undefined;
 
         // Check for error/failure payload
@@ -63,15 +62,14 @@ export function subscribeSSE<T = Record<string, unknown>>(
           return;
         }
 
-        // Check for successful completion
+        // Check for successful completion (only on explicit completion events, not on progress percent)
         const isCompleted =
           eventType === "DONE" ||
           eventType === "COMPLETED" ||
           status === "DONE" ||
           status === "COMPLETED" ||
           stage === "DONE" ||
-          stage === "COMPLETED" ||
-          percent >= 100;
+          stage === "COMPLETED";
 
         if (isCompleted) {
           closeStream();

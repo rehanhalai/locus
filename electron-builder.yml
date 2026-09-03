@@ -1,0 +1,43 @@
+appId: com.locus.forensics
+productName: LOCUS
+copyright: Copyright © 2026 Rehan Halai
+
+directories:
+  output: dist_desktop
+  buildResources: electron
+
+files:
+  - "electron/**/*"
+  - "frontend/dist/**/*"
+
+extraResources:
+  - from: "backend/dist"
+    to: "backend"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: zip
+      arch:
+        - x64
+  icon: electron/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: LOCUS
+
+linux:
+  target:
+    - target: dir
+      arch:
+        - x64
+    - target: AppImage
+      arch:
+        - x64
+  icon: electron/icon.png
+  category: Utility
