@@ -69,8 +69,22 @@ export function ServerFilePickerModal({
     }
   };
 
-  // Split path for interactive breadcrumb
-  const pathSegments = activePath ? activePath.split("/").filter(Boolean) : [];
+  // Split path for interactive breadcrumb (supports both Windows C:\foo and Linux /foo)
+  const isWindows = /^[a-zA-Z]:/.test(activePath) || activePath.includes("\\");
+
+  const pathSegments = activePath
+    ? /^[a-zA-Z]:/.test(activePath)
+      ? [activePath.slice(0, 2), ...activePath.slice(2).split(/[\\/]/).filter(Boolean)]
+      : activePath.split(/[\\/]/).filter(Boolean)
+    : [];
+
+  const getSubPath = (idx: number) => {
+    if (isWindows && /^[a-zA-Z]:/.test(pathSegments[0])) {
+      if (idx === 0) return `${pathSegments[0]}\\`;
+      return `${pathSegments[0]}\\${pathSegments.slice(1, idx + 1).join("\\")}`;
+    }
+    return "/" + pathSegments.slice(0, idx + 1).join("/");
+  };
 
   const getShortcutIcon = (iconType: string) => {
     switch (iconType) {
@@ -123,13 +137,19 @@ export function ServerFilePickerModal({
             <div className="flex-1 px-2.5 py-1 rounded-md bg-background border border-border flex items-center gap-1 overflow-x-auto text-xs font-mono scrollbar-none">
               <button
                 type="button"
-                onClick={() => handleNavigate("/")}
+                onClick={() =>
+                  handleNavigate(isWindows && pathSegments[0] ? `${pathSegments[0]}\\` : "/")
+                }
                 className="hover:text-primary transition-colors text-muted-foreground"
               >
-                /
+                {isWindows && pathSegments[0] ? `${pathSegments[0]}\\` : "/"}
               </button>
-              {pathSegments.map((segment, idx) => {
-                const subPath = "/" + pathSegments.slice(0, idx + 1).join("/");
+              {(isWindows && /^[a-zA-Z]:/.test(pathSegments[0])
+                ? pathSegments.slice(1)
+                : pathSegments
+              ).map((segment, rawIdx) => {
+                const idx = isWindows && /^[a-zA-Z]:/.test(pathSegments[0]) ? rawIdx + 1 : rawIdx;
+                const subPath = getSubPath(idx);
                 const isLast = idx === pathSegments.length - 1;
                 return (
                   <div key={subPath} className="flex items-center gap-1 shrink-0">
