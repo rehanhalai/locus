@@ -8,6 +8,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.core.paths import get_carved_clips_dir
 from app.core.task_manager import task_manager
 from app.db import session as db_session
 from app.db.models import (
@@ -22,9 +23,7 @@ from app.db.models import (
 from app.modules.carver.demuxer import SectorDemuxer
 from app.modules.carver.remuxer import VideoRemuxer
 
-CARVED_CLIPS_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../../data/carved_clips")
-)
+CARVED_CLIPS_DIR = str(get_carved_clips_dir())
 
 
 class CarverService:

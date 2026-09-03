@@ -9,11 +9,10 @@ directories:
 files:
   - "electron/**/*"
   - "frontend/dist/**/*"
-  - "backend/dist/locus-backend"
 
 extraResources:
-  - from: "backend/dist/locus-backend"
-    to: "backend/locus-backend"
+  - from: "backend/dist"
+    to: "backend"
 
 win:
   target:

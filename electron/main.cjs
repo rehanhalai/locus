@@ -1,7 +1,9 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
-const http = require("http")
+const http = require("http");
+
+app.setName("LOCUS");
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -10,6 +12,7 @@ function createWindow() {
     minWidth: 1100,
     minHeight: 720,
     title: "LOCUS",
+    icon: path.join(__dirname, process.platform === "win32" ? "icon.ico" : "icon.png"),
     backgroundColor: "#09090b",
     autoHideMenuBar: true,
     webPreferences: {
@@ -37,45 +40,58 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  let backend;
 
-  const backendPath = app.isPackaged
-    ? path.join(process.resourcesPath, "backend", "locus-backend")
-    : path.join(__dirname, "../backend/dist/locus-backend");
+  if (app.isPackaged) {
+    // 1. Packaged Production App: Run bundled standalone executable
+    const isWin = process.platform === "win32";
+    const binaryName = isWin ? "locus-backend.exe" : "locus-backend";
+    const backendPath = path.join(process.resourcesPath, "backend", binaryName);
 
-  console.log("Backend path:", backendPath);
-
-  const backend = spawn(
-    backendPath,
-    [],
-    {
+    console.log("[Electron] Spawning bundled backend:", backendPath);
+    backend = spawn(backendPath, [], {
       stdio: "inherit",
-    }
-  );
+    });
+  } else {
+    // 2. Development Mode: Run live FastAPI server with hot-reloading
+    console.log("[Electron] Spawning development backend via uv...");
+    backend = spawn(
+      "uv",
+      ["run", "uvicorn", "app.main:app", "--port", "8000", "--reload"],
+      {
+        cwd: path.join(__dirname, "../backend"),
+        stdio: "inherit",
+      }
+    );
+  }
 
   backend.on("error", (error) => {
-    console.error("Failed to start backend:", error);
+    console.error("[Electron] Failed to start backend process:", error);
   });
 
   app.on("before-quit", () => {
-    backend.kill();
+    if (backend) {
+      backend.kill();
+    }
   });
 
   function waitForBackend() {
     return new Promise((resolve) => {
       const check = () => {
-        const req = http.get("http://localhost:8000", () => {
+        const req = http.get("http://localhost:8000/health", () => {
           resolve();
         });
 
-      req.on("error", () => {
-        setTimeout(check, 200);
-      });
-    };
+        req.on("error", () => {
+          setTimeout(check, 200);
+        });
+      };
 
-    check();
-  });
-}
-  await waitForBackend()
+      check();
+    });
+  }
+
+  await waitForBackend();
   createWindow();
 
   app.on("activate", () => {

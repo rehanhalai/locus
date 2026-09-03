@@ -1,9 +1,9 @@
 import asyncio
 import os
-import sys
 import platform
 import re
 import shutil
+import sys
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
@@ -13,6 +13,7 @@ def get_base_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(getattr(sys, "_MEIPASS", sys.executable)).resolve()
     return Path(__file__).resolve().parents[3]
+
 
 def get_dc3dd_path() -> Path:
     base_dir = get_base_dir()

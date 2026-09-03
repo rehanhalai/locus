@@ -134,18 +134,36 @@ def stream_video_clip(
 ):
     """Streams video file supporting HTTP 206 Partial Content for instant seeking."""
     clip = CarverService.get_clip_by_id(db, clip_id)
-    if not clip or not os.path.exists(clip.file_path):
+    if not clip:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Carved video clip '{clip_id}' not found on disk.",
+            detail=f"Carved video clip '{clip_id}' not found.",
         )
 
-    file_size = os.path.getsize(clip.file_path)
+    file_path = clip.file_path
+    if not os.path.exists(file_path):
+        fallback_path = os.path.join(
+            CarverService.get_output_dir_for_evidence(clip.evidence_id), f"{clip.id}.mp4"
+        )
+        if os.path.exists(fallback_path):
+            file_path = fallback_path
+            clip.file_path = fallback_path
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Carved video clip '{clip_id}' not found on disk.",
+            )
+
+    file_size = os.path.getsize(file_path)
 
     # 1. Standard full file download / playback if no Range requested
     if not range_header:
         return FileResponse(
-            clip.file_path,
+            file_path,
             media_type="video/mp4",
             headers={"Accept-Ranges": "bytes"},
         )
@@ -171,7 +189,7 @@ def stream_video_clip(
     chunk_size = (end_byte - start_byte) + 1
 
     def iter_file():
-        with open(clip.file_path, "rb") as f:
+        with open(file_path, "rb") as f:
             f.seek(start_byte)
             bytes_left = chunk_size
             while bytes_left > 0:

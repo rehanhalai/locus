@@ -1,10 +1,11 @@
 """Platform binary resolver and command generator for FFmpeg zero-transcoding remuxer."""
 
-import sys
 import os
 import platform
 import shutil
+import sys
 from pathlib import Path
+
 
 def get_base_dir() -> Path:
     if getattr(sys, "frozen", False):
@@ -12,6 +13,7 @@ def get_base_dir() -> Path:
         return Path(getattr(sys, "_MEIPASS", sys.executable)).resolve()
     # Development backend/ root
     return Path(__file__).resolve().parents[3]
+
 
 def get_ffmpeg_path() -> str:
     """Resolves the executable path to FFmpeg across platforms.

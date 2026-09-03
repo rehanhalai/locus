@@ -1,6 +1,8 @@
 {
   "name": "locus",
   "version": "0.1.0",
+  "description": "LOCUS Multi-Vendor DVR/NVR Forensic Workstation",
+  "desktopName": "locus.desktop",
   "private": true,
   "main": "electron/main.cjs",
   "scripts": {
