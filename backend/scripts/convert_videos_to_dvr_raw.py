@@ -5,13 +5,11 @@ Converts 4 synchronized video streams (AVI / MP4) into an authentic
 multiplexed raw forensic DVR disk image (.raw / .dd).
 """
 
-import sys
+import argparse
 import os
 import struct
 import subprocess
 import tempfile
-import argparse
-from pathlib import Path
 
 # Camera channel tokens matching the Heimvision / Xiongmai OEM specification
 CAMERA_TOKENS = {
@@ -44,7 +42,7 @@ def extract_h264_nal_units(video_path: str, ffmpeg_bin: str) -> list[bytes]:
         "h264",
         "pipe:1",
     ]
-    res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    res = subprocess.run(cmd, capture_output=True, check=True)
     raw_h264 = res.stdout
 
     # Split into NAL units based on standard start codes \x00\x00\x00\x01
@@ -66,11 +64,13 @@ def extract_h264_nal_units(video_path: str, ffmpeg_bin: str) -> list[bytes]:
         if len(nal) > 0:
             nal_units.append(nal)
 
-    print(f"    Extracted {len(nal_units)} NAL units ({len(raw_h264)/(1024*1024):.2f} MB)")
+    print(f"    Extracted {len(nal_units)} NAL units ({len(raw_h264) / (1024 * 1024):.2f} MB)")
     return nal_units
 
 
-def build_dvr_dat_file(cam_files: dict[int, str], out_dat_path: str, ffmpeg_bin: str, start_time: int = 1774345200):
+def build_dvr_dat_file(
+    cam_files: dict[int, str], out_dat_path: str, ffmpeg_bin: str, start_time: int = 1774345200
+):
     """
     Multiplexes NAL units from 4 cameras into an authentic Xiongmai/DVR .DAT container
     with 'luo ' file header and 'liu ' frame packet headers.
@@ -87,10 +87,12 @@ def build_dvr_dat_file(cam_files: dict[int, str], out_dat_path: str, ffmpeg_bin:
         raise ValueError("No valid camera video files provided.")
 
     max_frames = max(len(nals) for nals in cam_nals.values())
-    duration_secs = int(max_frames / 25) # assume ~25 fps
+    duration_secs = int(max_frames / 25)  # assume ~25 fps
     end_time = start_time + max(1, duration_secs)
 
-    print(f"[*] Multiplexing {len(cam_nals)} cameras into CCTV container (duration: {duration_secs}s)...")
+    print(
+        f"[*] Multiplexing {len(cam_nals)} cameras into CCTV container (duration: {duration_secs}s)..."
+    )
     with open(out_dat_path, "wb") as f_out:
         # 1. Write 'luo ' file container header (16 bytes)
         # Magic: 'luo ' (4B), start_timestamp (4B LE), end_timestamp (4B LE), reserved (4B)
@@ -111,21 +113,20 @@ def build_dvr_dat_file(cam_files: dict[int, str], out_dat_path: str, ffmpeg_bin:
                     # 4..8: camera token (4 bytes)
                     # 8..12: frame sequence index
                     # 12..32: padding
-                    pkt_hdr = (
-                        b"liu "
-                        + token
-                        + struct.pack("<I", frame_idx)
-                        + (b"\x00" * 20)
-                    )
+                    pkt_hdr = b"liu " + token + struct.pack("<I", frame_idx) + (b"\x00" * 20)
                     f_out.write(pkt_hdr)
                     f_out.write(nal)
 
     total_size = os.path.getsize(out_dat_path)
-    print(f"[+] Multiplexed container created: {out_dat_path} ({total_size/(1024*1024):.2f} MB)")
+    print(
+        f"[+] Multiplexed container created: {out_dat_path} ({total_size / (1024 * 1024):.2f} MB)"
+    )
     return total_size
 
 
-def create_raw_dvr_image(cam_files: dict[int, str], output_raw_path: str, ffmpeg_bin: str, start_time: int = 1788422400):
+def create_raw_dvr_image(
+    cam_files: dict[int, str], output_raw_path: str, ffmpeg_bin: str, start_time: int = 1788422400
+):
     """Generates an authentic FAT32 raw disk image (.raw / .dd) containing the multiplexed DVR container."""
     output_raw = os.path.abspath(output_raw_path)
     os.makedirs(os.path.dirname(output_raw), exist_ok=True)
@@ -152,21 +153,30 @@ def create_raw_dvr_image(cam_files: dict[int, str], output_raw_path: str, ffmpeg
         print("[*] Injecting multiplexed CCTV container into raw disk blocks...")
         subprocess.run(["mcopy", "-i", output_raw, dat_path, "::/FILE0001.DAT"], check=True)
 
-        print(f"[✔] SUCCESS! Forensic DVR raw image generated:")
+        print("[✔] SUCCESS! Forensic DVR raw image generated:")
         print(f"    File: {output_raw}")
-        print(f"    Size: {os.path.getsize(output_raw)/(1024*1024):.2f} MB")
-        print(f"    Format: Raw Disk Image (.dd / .raw, FAT32)")
+        print(f"    Size: {os.path.getsize(output_raw) / (1024 * 1024):.2f} MB")
+        print("    Format: Raw Disk Image (.dd / .raw, FAT32)")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Convert video feeds into an authentic forensic raw DVR disk image.")
+    parser = argparse.ArgumentParser(
+        description="Convert video feeds into an authentic forensic raw DVR disk image."
+    )
     parser.add_argument("--cam1", required=True, help="Path to Camera 1 video (AVI/MP4)")
     parser.add_argument("--cam2", required=True, help="Path to Camera 2 video (AVI/MP4)")
     parser.add_argument("--cam3", required=True, help="Path to Camera 3 video (AVI/MP4)")
     parser.add_argument("--cam4", required=True, help="Path to Camera 4 video (AVI/MP4)")
     parser.add_argument("--out", required=True, help="Output .raw or .dd path")
-    parser.add_argument("--start-time", type=int, default=1788422400, help="Epoch start timestamp (default: 1788422400)")
-    parser.add_argument("--ffmpeg", default="backend/bin/linux/ffmpeg", help="Path to ffmpeg binary")
+    parser.add_argument(
+        "--start-time",
+        type=int,
+        default=1788422400,
+        help="Epoch start timestamp (default: 1788422400)",
+    )
+    parser.add_argument(
+        "--ffmpeg", default="backend/bin/linux/ffmpeg", help="Path to ffmpeg binary"
+    )
 
     args = parser.parse_args()
 

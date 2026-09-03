@@ -206,13 +206,21 @@ export function InvestigatePage() {
     });
 
     return () => unsub();
-  }, [activeCarveTask?.task_id, addOrUpdateTask, refetchClips]);
+  }, [
+    activeCarveTask?.task_id,
+    activeCarveTask?.progress_percent,
+    activeCarveTask?.started_at,
+    addOrUpdateTask,
+    refetchClips,
+  ]);
 
   // Auto-refresh feeds when carving task completes
   useEffect(() => {
     if (!activeCarveTask && isCarving) {
-      setIsCarving(false);
-      refetchClips();
+      queueMicrotask(() => {
+        setIsCarving(false);
+        refetchClips();
+      });
     }
   }, [activeCarveTask, isCarving, refetchClips]);
 

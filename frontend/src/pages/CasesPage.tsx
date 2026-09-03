@@ -69,11 +69,13 @@ export function CasesPage() {
         useCaseStore.getState().setActiveIntakeState(null);
         return;
       }
-      setTargetCaseForIntake({
-        id: activeIntakeState.caseId,
-        caseNumber: activeIntakeState.caseNumber,
+      queueMicrotask(() => {
+        setTargetCaseForIntake({
+          id: activeIntakeState.caseId,
+          caseNumber: activeIntakeState.caseNumber,
+        });
+        setIntakeModalOpen(true);
       });
-      setIntakeModalOpen(true);
     }
   }, [activeIntakeState, runningTasks, intakeModalOpen]);
 

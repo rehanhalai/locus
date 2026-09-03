@@ -10,7 +10,6 @@ Usage:
     ./scripts/reset.sh
 """
 
-import os
 import shutil
 import sys
 from pathlib import Path
@@ -19,8 +18,8 @@ from pathlib import Path
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
-from app.core.config import settings
-from app.db.session import Base, engine
+from app.core.config import settings  # noqa: E402
+from app.db.session import Base, engine  # noqa: E402
 
 
 def reset_environment() -> None:

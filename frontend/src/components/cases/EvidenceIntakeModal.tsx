@@ -92,12 +92,14 @@ export function EvidenceIntakeModal({
   // Restore active intake task state across page reloads
   useEffect(() => {
     if (open && activeIntakeState && activeIntakeState.caseId === caseId) {
-      setTaskId(activeIntakeState.taskId);
-      setIsProcessing(true);
-      if (activeIntakeState.filePath) {
-        setFilePath(activeIntakeState.filePath);
-        setSelectedFileName(activeIntakeState.filePath.split("/").pop() || null);
-      }
+      queueMicrotask(() => {
+        setTaskId(activeIntakeState.taskId);
+        setIsProcessing(true);
+        if (activeIntakeState.filePath) {
+          setFilePath(activeIntakeState.filePath);
+          setSelectedFileName(activeIntakeState.filePath.split("/").pop() || null);
+        }
+      });
     }
   }, [open, activeIntakeState, caseId]);
 

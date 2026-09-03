@@ -322,6 +322,7 @@ class CarverService:
 
             # Primary path: Check for Xiongmai / HeimVision / FAT32 CCTV multiplexed images
             try:
+
                 def _extract_heimvision_streams():
                     import struct
 
@@ -353,7 +354,12 @@ class CarverService:
                         data_start = part_base + (reserved_sec * bytes_per_sec) + fat_size
                         cluster_size = sec_per_clus * bytes_per_sec
 
-                        cam_streams = {1: bytearray(), 2: bytearray(), 3: bytearray(), 4: bytearray()}
+                        cam_streams = {
+                            1: bytearray(),
+                            2: bytearray(),
+                            3: bytearray(),
+                            4: bytearray(),
+                        }
                         t_min = {1: None, 2: None, 3: None, 4: None}
                         t_max = {1: None, 2: None, 3: None, 4: None}
 
@@ -374,7 +380,9 @@ class CarverService:
                                     break
                                 if ent[0] == 0xE5 or ent[11] == 0x0F:
                                     continue
-                                first_clus = (struct.unpack("<H", ent[20:22])[0] << 16) | struct.unpack("<H", ent[26:28])[0]
+                                first_clus = (
+                                    struct.unpack("<H", ent[20:22])[0] << 16
+                                ) | struct.unpack("<H", ent[26:28])[0]
                                 size = struct.unpack("<I", ent[28:32])[0]
                                 if first_clus > 0 and size > 0:
                                     f_offset = data_start + ((first_clus - 2) * cluster_size)
@@ -420,12 +428,15 @@ class CarverService:
                     },
                 )
 
-                cam_streams, t_min, t_max = await loop.run_in_executor(None, _extract_heimvision_streams)
+                cam_streams, t_min, t_max = await loop.run_in_executor(
+                    None, _extract_heimvision_streams
+                )
 
                 if cam_streams and any(len(s) > 0 for s in cam_streams.values()):
-                    from app.modules.carver.ffmpeg import get_ffmpeg_path
                     import hashlib
                     import subprocess
+
+                    from app.modules.carver.ffmpeg import get_ffmpeg_path
 
                     ffmpeg_bin = get_ffmpeg_path()
                     cam_labels = {
@@ -475,7 +486,11 @@ class CarverService:
                                 input=raw_data,
                                 capture_output=True,
                             )
-                            if res.returncode == 0 and os.path.exists(out_path) and os.path.getsize(out_path) > 1000:
+                            if (
+                                res.returncode == 0
+                                and os.path.exists(out_path)
+                                and os.path.getsize(out_path) > 1000
+                            ):
                                 return True
                         return False
 
@@ -515,17 +530,19 @@ class CarverService:
                             end_dt = datetime.fromtimestamp(t_max[cam_id] or 1628100180, UTC)
                             duration = max(1.0, (end_dt - start_dt).total_seconds())
 
-                            extracted_clips.append({
-                                "clip_id": clip_id,
-                                "camera_id": cam_id,
-                                "start_time": start_dt,
-                                "end_time": end_dt,
-                                "out_mp4": os.path.abspath(out_mp4),
-                                "file_size": file_size,
-                                "sha256": sha,
-                                "md5": md5,
-                                "frame_count": max(25, int(duration * 25)),
-                            })
+                            extracted_clips.append(
+                                {
+                                    "clip_id": clip_id,
+                                    "camera_id": cam_id,
+                                    "start_time": start_dt,
+                                    "end_time": end_dt,
+                                    "out_mp4": os.path.abspath(out_mp4),
+                                    "file_size": file_size,
+                                    "sha256": sha,
+                                    "md5": md5,
+                                    "frame_count": max(25, int(duration * 25)),
+                                }
+                            )
 
                     if extracted_clips:
                         await task_manager.broadcast(
@@ -606,7 +623,8 @@ class CarverService:
                         frame_count=d.frame_count,
                         keyframe_count=d.keyframe_count,
                         stream_format=d.stream_format or "H264",
-                        size_bytes=d.size_bytes or max(sector_size, (d.end_sector - d.start_sector + 1) * sector_size),
+                        size_bytes=d.size_bytes
+                        or max(sector_size, (d.end_sector - d.start_sector + 1) * sector_size),
                         created_at=datetime.now(UTC),
                     )
                     db.add(chunk_rec)

@@ -327,4 +327,3 @@ def test_browse_filesystem_includes_forensic_and_ewf(client):
     assert "current_path" in data
     assert "entries" in data
     assert "shortcuts" in data
-

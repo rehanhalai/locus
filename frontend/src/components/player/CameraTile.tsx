@@ -44,9 +44,11 @@ export function CameraTile({
   const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
   const streamUrl = clip?.stream_url || (clip?.id ? `${apiBase}/carver/stream/${clip.id}` : null);
 
-  useEffect(() => {
+  const [prevStreamUrl, setPrevStreamUrl] = useState(streamUrl);
+  if (streamUrl !== prevStreamUrl) {
+    setPrevStreamUrl(streamUrl);
     setVideoError(false);
-  }, [streamUrl]);
+  }
 
   useEffect(() => {
     const handleFsChange = () => {

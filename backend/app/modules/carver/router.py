@@ -1,6 +1,5 @@
 """REST endpoints and HTTP 206 Partial Content video streaming for carved clips."""
 
-import json
 import os
 import re
 

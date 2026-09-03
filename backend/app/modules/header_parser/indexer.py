@@ -123,7 +123,9 @@ class MasterSectorIndexer:
                                 sector_offset <= active["end_sector"] + payload_sectors + 128
                                 and time_diff <= TIME_GAP_THRESHOLD_SECONDS
                             ):
-                                active["end_sector"] = max(active["end_sector"], sector_offset + payload_sectors)
+                                active["end_sector"] = max(
+                                    active["end_sector"], sector_offset + payload_sectors
+                                )
                                 active["end_time"] = max(active["end_time"], frame.timestamp)
                                 active["frame_count"] += 1
                                 if frame.is_keyframe:

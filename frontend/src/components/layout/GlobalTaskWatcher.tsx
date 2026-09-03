@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { RefreshCw, ChevronUp, ChevronDown, X } from "lucide-react";
 import { useCaseStore } from "../../stores/useCaseStore";
 import { subscribeSSE } from "../../api/sse";
+import type { BackgroundTask } from "../../types";
 import { Progress } from "../ui/progress";
 import { Button } from "../ui/button";
 
@@ -35,15 +36,20 @@ export function GlobalTaskWatcher() {
   const [isMinimized, setIsMinimized] = useState(false);
 
   // Active jobs that need live SSE subscription
-  const activeTasks = runningTasks.filter(
-    (t) => t.status === "PROCESSING" || t.status === "PENDING"
+  const activeTasks = useMemo<BackgroundTask[]>(
+    () => runningTasks.filter((t: BackgroundTask) => t.status === "PROCESSING" || t.status === "PENDING"),
+    [runningTasks]
+  );
+  const activeTaskIds = useMemo(
+    () => activeTasks.map((t: BackgroundTask) => t.task_id).join(","),
+    [activeTasks]
   );
 
   // Subscribe to SSE for every active task (reconnects on page refresh!)
   useEffect(() => {
     if (activeTasks.length === 0) return;
 
-    const unsubscribers = activeTasks.map((task) => {
+    const unsubscribers = activeTasks.map((task: BackgroundTask) => {
       let streamUrl = `/acquisition/stream/${task.task_id}`;
       if (task.type === "carving" || task.task_id.startsWith("carve_")) {
         streamUrl = `/carver/progress/${task.task_id}`;
@@ -113,7 +119,7 @@ export function GlobalTaskWatcher() {
     return () => {
       unsubscribers.forEach((unsub) => unsub());
     };
-  }, [activeTasks.map((t) => t.task_id).join(",")]);
+  }, [activeTaskIds, activeTasks, addOrUpdateTask, setActiveEvidenceId]);
 
   if (activeTasks.length === 0) return null;
 
