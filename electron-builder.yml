@@ -16,13 +16,20 @@ extraResources:
 
 win:
   target:
-    - target: dir
+    - target: nsis
       arch:
         - x64
     - target: zip
       arch:
         - x64
   icon: electron/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: LOCUS
 
 linux:
   target:
