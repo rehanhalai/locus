@@ -1,0 +1,109 @@
+name: CD - Build & Release Desktop App
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: "create draft release"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            backend_cmd: pnpm run build:backend
+            desktop_cmd: npx --yes electron-builder --win
+          - os: ubuntu-latest
+            platform: linux
+            backend_cmd: pnpm run build:backend:linux
+            desktop_cmd: npx --yes electron-builder --linux
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 1. Python Environment Setup
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: latest
+          enable-cache: true
+      - name: Install Python 3.12
+        run: uv python install 3.12
+      - name: Sync Backend Dependencies
+        run: uv sync
+        working-directory: backend
+
+      # 2. Build Backend Binary (Native for each OS)
+      - name: Build Python Standalone Executable
+        run: ${{ matrix.backend_cmd }}
+
+      # 3. Node & Frontend Setup
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install Workspace Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Frontend Assets
+        run: pnpm run build:frontend
+
+      # 4. Package Electron App
+      - name: Package Electron Installer
+        run: ${{ matrix.desktop_cmd }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # 5. Upload artifacts to the Workflow Run
+      - name: Upload Installer Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: locus-${{ matrix.platform }}-installers
+          path: |
+            dist_desktop/*.exe
+            dist_desktop/*.AppImage
+            dist_desktop/*.zip
+          if-no-files-found: error
+
+  # Publish to GitHub Releases (only runs when a tag is pushed or triggered manually)
+  release:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Download all installer artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          pattern: locus-*-installers
+          merge-multiple: true
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*
+          draft: ${{ inputs.draft || false }}
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
