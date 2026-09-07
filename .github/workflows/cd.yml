@@ -35,23 +35,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 1. Python Environment Setup
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          version: latest
-          enable-cache: true
-      - name: Install Python 3.12
-        run: uv python install 3.12
-      - name: Sync Backend Dependencies
-        run: uv sync
-        working-directory: backend
-
-      # 2. Build Backend Binary (Native for each OS)
-      - name: Build Python Standalone Executable
-        run: ${{ matrix.backend_cmd }}
-
-      # 3. Node & Frontend Setup
+      # 1. Node & pnpm Setup
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -66,10 +50,27 @@ jobs:
       - name: Install Workspace Dependencies
         run: pnpm install --frozen-lockfile
 
+      # 2. Python Environment Setup
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: latest
+          enable-cache: true
+      - name: Install Python 3.12
+        run: uv python install 3.12
+      - name: Sync Backend Dependencies
+        run: uv sync
+        working-directory: backend
+
+      # 3. Build Backend Binary (Native for each OS)
+      - name: Build Python Standalone Executable
+        run: ${{ matrix.backend_cmd }}
+
+      # 4. Build Frontend Assets
       - name: Build Frontend Assets
         run: pnpm run build:frontend
 
-      # 4. Package Electron App
+      # 5. Package Electron App
       - name: Package Electron Installer
         run: ${{ matrix.desktop_cmd }}
         env:
