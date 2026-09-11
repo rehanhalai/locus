@@ -19,9 +19,6 @@ win:
     - target: nsis
       arch:
         - x64
-    - target: zip
-      arch:
-        - x64
   icon: electron/icon.ico
 
 nsis:
@@ -30,14 +27,14 @@ nsis:
   createDesktopShortcut: always
   createStartMenuShortcut: true
   shortcutName: LOCUS
+  artifactName: "LOCUS-Setup-${version}.${ext}"
 
 linux:
   target:
-    - target: dir
-      arch:
-        - x64
     - target: AppImage
       arch:
         - x64
   icon: electron/icon.png
   category: Utility
+  artifactName: "LOCUS-${version}.${ext}"
+

@@ -25,11 +25,11 @@ jobs:
           - os: windows-latest
             platform: win
             backend_cmd: pnpm run build:backend
-            desktop_cmd: npx --yes electron-builder --win
+            desktop_cmd: npx --yes electron-builder --win --publish never
           - os: ubuntu-latest
             platform: linux
             backend_cmd: pnpm run build:backend:linux
-            desktop_cmd: npx --yes electron-builder --linux
+            desktop_cmd: npx --yes electron-builder --linux --publish never
 
     steps:
       - name: Checkout Repository
@@ -41,6 +41,7 @@ jobs:
         with:
           version: latest
 
+      # 2. Setup Node.js 22
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
@@ -50,7 +51,7 @@ jobs:
       - name: Install Workspace Dependencies
         run: pnpm install --frozen-lockfile
 
-      # 2. Python Environment Setup
+      # 3. Python Environment Setup
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -62,20 +63,19 @@ jobs:
         run: uv sync
         working-directory: backend
 
-      # 3. Build Backend Binary (Native for each OS)
+      # 4. Build Backend Binary (Native for each OS)
       - name: Build Python Standalone Executable
         run: ${{ matrix.backend_cmd }}
 
-      # 4. Build Frontend Assets
+      # 5. Build Frontend Assets
       - name: Build Frontend Assets
         run: pnpm run build:frontend
 
-      # 5. Package Electron App
+      # 6. Package Electron App (local build only, published in release job)
       - name: Package Electron Installer
         run: ${{ matrix.desktop_cmd }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # 5. Upload artifacts to the Workflow Run
+
+      # 7. Upload artifacts to the Workflow Run
       - name: Upload Installer Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -83,7 +83,6 @@ jobs:
           path: |
             dist_desktop/*.exe
             dist_desktop/*.AppImage
-            dist_desktop/*.zip
           if-no-files-found: error
 
   # Publish to GitHub Releases (only runs when a tag is pushed or triggered manually)
