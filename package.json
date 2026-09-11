@@ -8,6 +8,7 @@
   "scripts": {
     "dev:backend": "cd backend && uv run uvicorn app.main:app --reload --port 8000",
     "dev:frontend": "pnpm --filter frontend dev",
+    "dev:electron": "wait-on http://localhost:5173 && electron .",
     "dev": "concurrently -k -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
     "dev:desktop": "concurrently -k -n \"FRONTEND,DESKTOP\" -c \"green,magenta\" \"pnpm run dev:frontend\" \"pnpm run dev:electron\"",
     "setup:backend": "cd backend && uv sync",

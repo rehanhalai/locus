@@ -36,7 +36,7 @@ const formatLocalDate = (dateStr?: string | null): string => {
     const normalized = dateStr.endsWith("Z") || dateStr.includes("+") ? dateStr : `${dateStr}Z`;
     const d = new Date(normalized);
     if (isNaN(d.getTime())) return "N/A";
-    return format(d, "yyyy-MM-dd hh:mm a");
+    return format(d, "yyyy-MM-dd HH:mm");
   } catch {
     return "N/A";
   }
