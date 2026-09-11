@@ -153,15 +153,15 @@ export function TimelineScrubber({ clips = [], onOpenCalibration }: TimelineScru
       {/* 1. Timeline Scrubber Track */}
       <div className="space-y-1">
         <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground">
-          <span>{format(new Date(timelineStartMs), "yyyy-MM-dd hh:mm:ss a")}</span>
+          <span>{format(new Date(timelineStartMs), "yyyy-MM-dd HH:mm:ss")}</span>
 
           <div className="flex items-center gap-2">
             <span className="text-primary font-bold">
-              {format(new Date(currentMs), "yyyy-MM-dd hh:mm:ss.SSS a")}
+              {format(new Date(currentMs), "yyyy-MM-dd HH:mm:ss.SSS")}
             </span>
           </div>
 
-          <span>{format(new Date(timelineEndMs), "yyyy-MM-dd hh:mm:ss a")}</span>
+          <span>{format(new Date(timelineEndMs), "yyyy-MM-dd HH:mm:ss")}</span>
         </div>
 
         {/* Interactive Scrub Track */}
@@ -198,7 +198,7 @@ export function TimelineScrubber({ clips = [], onOpenCalibration }: TimelineScru
               className="absolute top-0 bottom-0 w-[1px] bg-foreground/40 pointer-events-none z-10"
             >
               <div className="absolute -top-7 -translate-x-1/2 bg-popover border border-border px-1.5 py-0.5 rounded text-[10px] font-mono shadow-md text-foreground whitespace-nowrap">
-                {format(hoverTime, "hh:mm:ss a")}
+                {format(hoverTime, "HH:mm:ss")}
               </div>
             </div>
           )}
@@ -273,7 +273,7 @@ export function TimelineScrubber({ clips = [], onOpenCalibration }: TimelineScru
         {/* Center: Large Timecode Readout */}
         <div className="text-center font-mono">
           <span className="text-sm font-bold tracking-wider text-primary">
-            {format(new Date(currentMs), "hh:mm:ss.SSS a")}
+            {format(new Date(currentMs), "HH:mm:ss.SSS")}
           </span>
           <span className="text-[10px] text-muted-foreground ml-1.5 font-normal">UTC</span>
         </div>

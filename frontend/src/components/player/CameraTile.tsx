@@ -267,7 +267,7 @@ export function CameraTile({
       <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground z-10 bg-background/80 backdrop-blur-md px-2.5 py-1 rounded-md border border-border/50 gap-2">
         <div className="flex items-center gap-2 truncate">
           <span className="text-primary font-semibold">
-            {format(calibratedDate, "yyyy-MM-dd hh:mm:ss a")}
+            {format(calibratedDate, "yyyy-MM-dd HH:mm:ss")}
           </span>
           {clip?.start_sector !== undefined && (
             <span className="text-muted-foreground/80 hidden sm:inline">

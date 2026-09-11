@@ -35,6 +35,7 @@ interface NavRoom {
   icon: typeof Camera;
   hotkey: string;
   roomNumber: number;
+  disabled?: boolean;
 }
 
 const ROOM_ITEMS: NavRoom[] = [
@@ -64,6 +65,7 @@ const ROOM_ITEMS: NavRoom[] = [
     icon: Scale,
     hotkey: "3",
     roomNumber: 3,
+    disabled: true,
   },
   {
     id: "audit",
@@ -73,6 +75,7 @@ const ROOM_ITEMS: NavRoom[] = [
     icon: ScrollText,
     hotkey: "4",
     roomNumber: 4,
+    disabled: true,
   },
 ];
 
@@ -151,7 +154,7 @@ export function AppSidebar() {
             {ROOM_ITEMS.map((room) => {
               const Icon = room.icon;
               const isActive = location.pathname === room.path;
-              const isDisabled = !activeCaseId && room.path !== "/cases";
+              const isDisabled = (!activeCaseId && room.path !== "/cases") || !!room.disabled;
 
               return (
                 <SidebarMenuItem key={room.id}>
@@ -159,14 +162,22 @@ export function AppSidebar() {
                     isActive={isActive}
                     disabled={isDisabled}
                     onClick={() => !isDisabled && navigate(room.path)}
-                    tooltip={`${room.roomLabel}: ${room.name} [${room.hotkey}]`}
-                    className={`gap-2.5 ${isDisabled ? "opacity-40 cursor-not-allowed" : ""}`}
+                    tooltip={
+                      room.disabled
+                        ? `${room.name} (Disabled in this build)`
+                        : `${room.roomLabel}: ${room.name} [${room.hotkey}]`
+                    }
+                    className={`gap-2.5 ${
+                      isDisabled
+                        ? "opacity-35 cursor-not-allowed hover:bg-transparent text-muted-foreground"
+                        : ""
+                    }`}
                   >
                     <Icon className="size-4 shrink-0" />
                     <span className="truncate">{room.name}</span>
                   </SidebarMenuButton>
-                  <SidebarMenuBadge className="font-mono text-[10px] font-semibold">
-                    {room.hotkey}
+                  <SidebarMenuBadge className="font-mono text-[10px] font-semibold text-muted-foreground/50">
+                    {room.disabled ? "—" : room.hotkey}
                   </SidebarMenuBadge>
                 </SidebarMenuItem>
               );

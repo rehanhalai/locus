@@ -528,13 +528,15 @@ class AcquisitionService:
             ".ewf",
         }
 
+        os_type = platform.system()
+
         # 1. Determine target directory
         if path and path.strip():
             target_path = Path(path.strip()).resolve()
             if target_path.is_file():
                 target_path = target_path.parent
             if not target_path.exists():
-                target_path = Path.cwd().resolve()
+                target_path = Path.home().resolve()
         else:
             # Check default workspace data locations
             candidate_default = (Path.cwd() / "data").resolve()
@@ -544,7 +546,32 @@ class AcquisitionService:
             elif candidate_parent.is_dir():
                 target_path = candidate_parent
             else:
-                target_path = Path.cwd().resolve()
+                downloads = None
+                if os_type == "Windows":
+                    try:
+                        import winreg
+
+                        with winreg.OpenKey(
+                            winreg.HKEY_CURRENT_USER,
+                            r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders",
+                        ) as key:
+                            val, _ = winreg.QueryValueEx(
+                                key, "{374DE290-123F-4565-9164-39C4925E467B}"
+                            )
+                            p = Path(os.path.expandvars(str(val))).resolve()
+                            if p.is_dir():
+                                downloads = p
+                    except Exception:
+                        pass
+                if not downloads:
+                    p = (Path.home() / "Downloads").resolve()
+                    if p.is_dir():
+                        downloads = p
+
+                if downloads and downloads.is_dir():
+                    target_path = downloads
+                else:
+                    target_path = Path.home().resolve()
 
         # 2. Determine parent directory
         parent_path = str(target_path.parent) if target_path.parent != target_path else None
@@ -615,33 +642,99 @@ class AcquisitionService:
 
         # 4. Generate OS shortcuts
         shortcuts = []
+
+        # Workspace Data
         data_dir = (Path.cwd() / "data").resolve()
         if not data_dir.is_dir():
             data_dir = (Path.cwd().parent / "data").resolve()
+        if not data_dir.is_dir():
+            try:
+                from app.core.paths import get_data_dir
+
+                p = get_data_dir()
+                if p.is_dir():
+                    data_dir = p
+            except Exception:
+                pass
         if data_dir.is_dir():
             shortcuts.append(
-                {"name": "⭐ Workspace Data", "path": str(data_dir), "icon_type": "workspace"}
+                {"name": "Workspace Data", "path": str(data_dir), "icon_type": "workspace"}
             )
 
-        shortcuts.append(
-            {"name": "🏠 Home", "path": str(Path.home().resolve()), "icon_type": "home"}
-        )
+        # Standard User Folders (Downloads, Desktop, Documents, Videos, Pictures)
+        home_path = Path.home().resolve()
+        folder_specs = [
+            ("Downloads", "downloads", ["Downloads"]),
+            ("Desktop", "desktop", ["Desktop", "OneDrive/Desktop"]),
+            ("Documents", "documents", ["Documents", "OneDrive/Documents", "My Documents"]),
+            ("Videos", "videos", ["Videos", "Movies"]),
+            ("Pictures", "pictures", ["Pictures", "Photos"]),
+        ]
 
-        os_type = platform.system()
+        win_folders: dict[str, Path] = {}
+        if os_type == "Windows":
+            try:
+                import winreg
+
+                guid_map = {
+                    "Downloads": "{374DE290-123F-4565-9164-39C4925E467B}",
+                    "Desktop": "Desktop",
+                    "Documents": "Personal",
+                    "Videos": "My Video",
+                    "Pictures": "My Pictures",
+                }
+                with winreg.OpenKey(
+                    winreg.HKEY_CURRENT_USER,
+                    r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders",
+                ) as key:
+                    for label, val_name in guid_map.items():
+                        try:
+                            val, _ = winreg.QueryValueEx(key, val_name)
+                            expanded = os.path.expandvars(str(val))
+                            p = Path(expanded).resolve()
+                            if p.is_dir():
+                                win_folders[label] = p
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+
+        for label, icon_type, candidates in folder_specs:
+            target_folder = win_folders.get(label)
+            if not target_folder:
+                for cand in candidates:
+                    p = (home_path / cand).resolve()
+                    if p.is_dir():
+                        target_folder = p
+                        break
+            if target_folder and target_folder.is_dir():
+                shortcuts.append(
+                    {
+                        "name": label,
+                        "path": str(target_folder),
+                        "icon_type": icon_type,
+                    }
+                )
+
+        shortcuts.append({"name": "Home", "path": str(home_path), "icon_type": "home"})
+
         if os_type == "Windows":
             import string
 
             for letter in string.ascii_uppercase:
                 drive = f"{letter}:\\"
-                if Path(drive).exists():
-                    shortcuts.append(
-                        {"name": f"💾 Drive {letter}:", "path": drive, "icon_type": "drive"}
-                    )
+                try:
+                    if os.path.exists(drive):
+                        shortcuts.append(
+                            {"name": f"Drive ({letter}:)", "path": drive, "icon_type": "drive"}
+                        )
+                except Exception:
+                    pass
         else:
-            shortcuts.append({"name": "💾 Root (/)", "path": "/", "icon_type": "root"})
-            for mount in ["/media", "/mnt"]:
+            shortcuts.append({"name": "Root (/)", "path": "/", "icon_type": "root"})
+            for mount in ["/media", "/mnt", "/run/media"]:
                 if Path(mount).is_dir():
-                    shortcuts.append({"name": f"🔌 {mount}", "path": mount, "icon_type": "mount"})
+                    shortcuts.append({"name": mount, "path": mount, "icon_type": "mount"})
 
         return {
             "current_path": str(target_path),
