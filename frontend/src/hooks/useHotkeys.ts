@@ -31,16 +31,10 @@ export function useHotkeys() {
           }
           break;
         case "3":
-          if (activeCaseId) {
-            e.preventDefault();
-            navigate("/export");
-          }
+          // Export room disabled in this build
           break;
         case "4":
-          if (activeCaseId) {
-            e.preventDefault();
-            navigate("/audit");
-          }
+          // Audit room disabled in this build
           break;
         case "0":
           e.preventDefault();
