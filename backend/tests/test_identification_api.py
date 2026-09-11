@@ -101,9 +101,17 @@ async def test_identify_device_api_workflow_dahua(client: TestClient, db):
         assert task["status"] == "COMPLETED"
 
         # 5. Fetch Identification Results
-        res = client.get(f"/api/v1/identify/results/{ev_id}")
+        data = None
+        for _ in range(50):
+            res = client.get(f"/api/v1/identify/results/{ev_id}")
+            if res.status_code == 200:
+                data = res.json()
+                if data.get("status") == "COMPLETED":
+                    break
+            await asyncio.sleep(0.05)
+
         assert res.status_code == 200
-        data = res.json()
+        assert data is not None
         assert data["evidence_id"] == ev_id
         assert data["status"] == "COMPLETED"
         assert data["metadata"]["dvr_brand_guess"] == DVRBrand.DAHUA
@@ -176,10 +184,19 @@ async def test_identify_device_api_workflow_hikvision(client: TestClient, db):
 
         assert task["status"] == "COMPLETED"
 
-        res = client.get(f"/api/v1/identify/results/{ev_id}")
+        data = None
+        for _ in range(50):
+            res = client.get(f"/api/v1/identify/results/{ev_id}")
+            if res.status_code == 200:
+                data = res.json()
+                if data.get("status") == "COMPLETED":
+                    break
+            await asyncio.sleep(0.05)
+
         assert res.status_code == 200
-        assert res.json()["metadata"]["dvr_brand_guess"] == DVRBrand.HIKVISION
-        assert res.json()["metadata"]["detected_fs"] == FileSystemType.HKFS
+        assert data is not None
+        assert data["metadata"]["dvr_brand_guess"] == DVRBrand.HIKVISION
+        assert data["metadata"]["detected_fs"] == FileSystemType.HKFS
 
     finally:
         if os.path.exists(img_path):
@@ -239,7 +256,14 @@ async def test_reidentify_device_idempotency(client: TestClient, db):
         assert task_manager.get_task(t2)["status"] == "COMPLETED"
 
         # Verify only 1 summary record exists and status is COMPLETED
-        final_res = client.get(f"/api/v1/identify/results/{ev_id}")
+        final_res = None
+        for _ in range(50):
+            final_res = client.get(f"/api/v1/identify/results/{ev_id}")
+            if final_res.status_code == 200 and final_res.json().get("status") == "COMPLETED":
+                break
+            await asyncio.sleep(0.05)
+
+        assert final_res is not None
         assert final_res.status_code == 200
         assert final_res.json()["status"] == "COMPLETED"
 
@@ -301,7 +325,14 @@ async def test_identify_device_api_deep_scan_mode(client: TestClient, db):
 
         assert task["status"] == "COMPLETED"
 
-        res = client.get(f"/api/v1/identify/results/{ev_id}")
+        res = None
+        for _ in range(50):
+            res = client.get(f"/api/v1/identify/results/{ev_id}")
+            if res.status_code == 200 and res.json().get("status") == "COMPLETED":
+                break
+            await asyncio.sleep(0.05)
+
+        assert res is not None
         assert res.status_code == 200
         assert res.json()["metadata"]["dvr_brand_guess"] == DVRBrand.DAHUA
         assert res.json()["metadata"]["detected_fs"] == FileSystemType.DHFS

@@ -153,6 +153,7 @@ class IdentificationService:
             )
             db.add(audit)
             db.commit()
+            db.close()
 
             # Broadcast completion event
             await task_manager.broadcast(
@@ -180,7 +181,10 @@ class IdentificationService:
                 },
             )
         finally:
-            db.close()
+            try:
+                db.close()
+            except Exception:
+                pass
 
     @classmethod
     def get_identification_results(cls, db: Session, evidence_id: str) -> dict[str, Any]:
