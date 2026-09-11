@@ -13,6 +13,12 @@ import {
   FileQuestion,
   Loader2,
   ChevronRight,
+  Download,
+  FileText,
+  Monitor,
+  Film,
+  Image,
+  Edit2,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 import { Button } from "../ui/button";
@@ -38,6 +44,8 @@ export function ServerFilePickerModal({
   const [currentPath, setCurrentPath] = useState<string>(initialPath || "");
   const [selectedEntry, setSelectedEntry] = useState<FsEntry | null>(null);
   const [searchFilter, setSearchFilter] = useState<string>("");
+  const [isEditingPath, setIsEditingPath] = useState(false);
+  const [manualPathInput, setManualPathInput] = useState("");
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["browse-fs", currentPath],
@@ -51,6 +59,21 @@ export function ServerFilePickerModal({
   const entries = data?.entries || [];
   const shortcuts = data?.shortcuts || [];
 
+  // Categorize shortcuts for clean sidebar navigation
+  const quickAccessShortcuts = shortcuts.filter((s: FsBrowseShortcut) =>
+    ["downloads", "desktop", "documents", "videos", "pictures", "home", "workspace"].includes(
+      s.icon_type
+    )
+  );
+  const driveShortcuts = shortcuts.filter((s: FsBrowseShortcut) =>
+    ["drive", "mount", "root"].includes(s.icon_type)
+  );
+  const otherShortcuts = shortcuts.filter(
+    (s: FsBrowseShortcut) =>
+      !quickAccessShortcuts.some((q) => q.path === s.path) &&
+      !driveShortcuts.some((d) => d.path === s.path)
+  );
+
   // Filter entries based on search
   const filteredEntries = entries.filter((e) =>
     e.name.toLowerCase().includes(searchFilter.trim().toLowerCase())
@@ -60,6 +83,20 @@ export function ServerFilePickerModal({
     setCurrentPath(path);
     setSelectedEntry(null);
     setSearchFilter("");
+    setIsEditingPath(false);
+  };
+
+  const startEditingPath = () => {
+    setManualPathInput(activePath);
+    setIsEditingPath(true);
+  };
+
+  const handleManualPathSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (manualPathInput.trim()) {
+      handleNavigate(manualPathInput.trim());
+    }
+    setIsEditingPath(false);
   };
 
   const handleConfirmSelection = () => {
@@ -92,6 +129,16 @@ export function ServerFilePickerModal({
         return <Star className="size-3.5 text-amber-400 shrink-0" />;
       case "home":
         return <Home className="size-3.5 text-cyan-400 shrink-0" />;
+      case "downloads":
+        return <Download className="size-3.5 text-blue-400 shrink-0" />;
+      case "desktop":
+        return <Monitor className="size-3.5 text-purple-400 shrink-0" />;
+      case "documents":
+        return <FileText className="size-3.5 text-yellow-400 shrink-0" />;
+      case "videos":
+        return <Film className="size-3.5 text-emerald-400 shrink-0" />;
+      case "pictures":
+        return <Image className="size-3.5 text-pink-400 shrink-0" />;
       case "drive":
       case "mount":
       case "root":
@@ -133,40 +180,65 @@ export function ServerFilePickerModal({
               Up
             </Button>
 
-            {/* Breadcrumb Path Bar */}
-            <div className="flex-1 px-2.5 py-1 rounded-md bg-background border border-border flex items-center gap-1 overflow-x-auto text-xs font-mono scrollbar-none">
-              <button
-                type="button"
-                onClick={() =>
-                  handleNavigate(isWindows && pathSegments[0] ? `${pathSegments[0]}\\` : "/")
-                }
-                className="hover:text-primary transition-colors text-muted-foreground"
+            {/* Breadcrumb Path Bar or Direct Path Input */}
+            {isEditingPath ? (
+              <form onSubmit={handleManualPathSubmit} className="flex-1 flex items-center gap-1">
+                <Input
+                  value={manualPathInput}
+                  onChange={(e) => setManualPathInput(e.target.value)}
+                  onBlur={() => handleManualPathSubmit()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setIsEditingPath(false);
+                  }}
+                  autoFocus
+                  placeholder="Paste or type directory path..."
+                  className="h-7 text-xs font-mono flex-1 bg-background"
+                />
+              </form>
+            ) : (
+              <div
+                onClick={startEditingPath}
+                title="Click to type or paste path"
+                className="flex-1 px-2.5 py-1 rounded-md bg-background border border-border flex items-center gap-1 overflow-x-auto text-xs font-mono scrollbar-none cursor-text group"
               >
-                {isWindows && pathSegments[0] ? `${pathSegments[0]}\\` : "/"}
-              </button>
-              {(isWindows && /^[a-zA-Z]:/.test(pathSegments[0])
-                ? pathSegments.slice(1)
-                : pathSegments
-              ).map((segment, rawIdx) => {
-                const idx = isWindows && /^[a-zA-Z]:/.test(pathSegments[0]) ? rawIdx + 1 : rawIdx;
-                const subPath = getSubPath(idx);
-                const isLast = idx === pathSegments.length - 1;
-                return (
-                  <div key={subPath} className="flex items-center gap-1 shrink-0">
-                    <ChevronRight className="size-3 text-muted-foreground/50" />
-                    <button
-                      type="button"
-                      onClick={() => handleNavigate(subPath)}
-                      className={`hover:text-primary transition-colors ${
-                        isLast ? "font-bold text-foreground" : "text-muted-foreground"
-                      }`}
-                    >
-                      {segment}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNavigate(isWindows && pathSegments[0] ? `${pathSegments[0]}\\` : "/");
+                  }}
+                  className="hover:text-primary transition-colors text-muted-foreground"
+                >
+                  {isWindows && pathSegments[0] ? `${pathSegments[0]}\\` : "/"}
+                </button>
+                {(isWindows && /^[a-zA-Z]:/.test(pathSegments[0])
+                  ? pathSegments.slice(1)
+                  : pathSegments
+                ).map((segment, rawIdx) => {
+                  const idx = isWindows && /^[a-zA-Z]:/.test(pathSegments[0]) ? rawIdx + 1 : rawIdx;
+                  const subPath = getSubPath(idx);
+                  const isLast = idx === pathSegments.length - 1;
+                  return (
+                    <div key={subPath} className="flex items-center gap-1 shrink-0">
+                      <ChevronRight className="size-3 text-muted-foreground/50" />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleNavigate(subPath);
+                        }}
+                        className={`hover:text-primary transition-colors ${
+                          isLast ? "font-bold text-foreground" : "text-muted-foreground"
+                        }`}
+                      >
+                        {segment}
+                      </button>
+                    </div>
+                  );
+                })}
+                <Edit2 className="size-3 ml-auto text-muted-foreground/30 group-hover:text-muted-foreground shrink-0 transition-colors" />
+              </div>
+            )}
 
             {/* Search filter in current directory */}
             <div className="relative w-44 shrink-0">
@@ -192,30 +264,78 @@ export function ServerFilePickerModal({
 
         <div className="grid grid-cols-12 h-95 min-h-95 max-h-95 overflow-hidden">
           {/* Left Sidebar: Shortcuts */}
-          <div className="col-span-4 border-r border-border bg-secondary/20 p-3 space-y-3 h-full overflow-y-auto">
-            <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-semibold">
-              Quick Locations
-            </p>
-            <div className="space-y-1">
-              {shortcuts.map((sc: FsBrowseShortcut) => (
-                <button
-                  key={sc.path}
-                  type="button"
-                  onClick={() => handleNavigate(sc.path)}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-mono transition-colors flex items-center gap-2 ${
-                    activePath === sc.path
-                      ? "bg-primary/20 text-primary font-semibold border border-primary/30"
-                      : "hover:bg-secondary/60 text-foreground"
-                  }`}
-                >
-                  {getShortcutIcon(sc.icon_type)}
-                  <span className="truncate">{sc.name}</span>
-                </button>
-              ))}
-            </div>
+          <div className="col-span-4 border-r border-border bg-secondary/20 p-3 space-y-4 h-full overflow-y-auto">
+            {quickAccessShortcuts.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-semibold px-1">
+                  Quick Access
+                </p>
+                {quickAccessShortcuts.map((sc: FsBrowseShortcut) => (
+                  <button
+                    key={sc.path}
+                    type="button"
+                    onClick={() => handleNavigate(sc.path)}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-mono transition-colors flex items-center gap-2 ${
+                      activePath === sc.path
+                        ? "bg-primary/20 text-primary font-semibold border border-primary/30"
+                        : "hover:bg-secondary/60 text-foreground"
+                    }`}
+                  >
+                    {getShortcutIcon(sc.icon_type)}
+                    <span className="truncate">{sc.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
 
-            <div className="pt-2">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-semibold">
+            {driveShortcuts.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-semibold px-1">
+                  Drives & Storage
+                </p>
+                {driveShortcuts.map((sc: FsBrowseShortcut) => (
+                  <button
+                    key={sc.path}
+                    type="button"
+                    onClick={() => handleNavigate(sc.path)}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-mono transition-colors flex items-center gap-2 ${
+                      activePath === sc.path
+                        ? "bg-primary/20 text-primary font-semibold border border-primary/30"
+                        : "hover:bg-secondary/60 text-foreground"
+                    }`}
+                  >
+                    {getShortcutIcon(sc.icon_type)}
+                    <span className="truncate">{sc.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {otherShortcuts.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-semibold px-1">
+                  Locations
+                </p>
+                {otherShortcuts.map((sc: FsBrowseShortcut) => (
+                  <button
+                    key={sc.path}
+                    type="button"
+                    onClick={() => handleNavigate(sc.path)}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-mono transition-colors flex items-center gap-2 ${
+                      activePath === sc.path
+                        ? "bg-primary/20 text-primary font-semibold border border-primary/30"
+                        : "hover:bg-secondary/60 text-foreground"
+                    }`}
+                  >
+                    {getShortcutIcon(sc.icon_type)}
+                    <span className="truncate">{sc.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-border/50">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-semibold px-1">
                 Supported Types
               </p>
               <div className="flex flex-wrap gap-1 mt-1.5">
