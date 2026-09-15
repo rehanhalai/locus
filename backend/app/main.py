@@ -19,7 +19,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="Locus Forensic Engine API",
     description="Multi-Vendor DVR/NVR Forensic Analysis & Recovery Tool",
-    version="0.1.0",
+    version="0.1.2",
 )
 
 app.add_middleware(
