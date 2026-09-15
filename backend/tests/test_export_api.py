@@ -323,3 +323,10 @@ def test_recover_manifest_api_unknown_hash_returns_404(client: TestClient):
         json={"file_sha256": "9" * 64},
     )
     assert res.status_code == 404
+
+
+def test_list_case_exports_endpoint(client: TestClient):
+    """Verify list exports for a case returns empty list when none exist."""
+    res = client.get("/api/v1/export/list/case_empty_test_999")
+    assert res.status_code == 200
+    assert res.json() == []

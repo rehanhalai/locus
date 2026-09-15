@@ -50,3 +50,16 @@ class CaseResponse(BaseModel):
 
 class CaseDetailResponse(CaseResponse):
     evidence_files: list[EvidenceItem] = []
+
+
+class AuditLogResponse(BaseModel):
+    id: int
+    case_id: str | None = None
+    evidence_id: str | None = None
+    action: str
+    actor: str = "Forensic Officer"
+    details: str | None = None
+    integrity_status: str = "VERIFIED"
+    timestamp: datetime
+
+    model_config = ConfigDict(from_attributes=True)

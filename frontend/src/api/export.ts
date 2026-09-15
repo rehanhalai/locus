@@ -14,6 +14,8 @@ export const exportApi = {
 
   getExportDetails: (exportId: string) => api.get<EvidenceExport>(`/export/${exportId}`),
 
+  listCaseExports: (caseId: string) => api.get<EvidenceExport[]>(`/export/list/${caseId}`),
+
   verifyIntegrity: (payload: { file_sha256?: string; manifest_json?: string }) =>
     api.post<VerifyResult>("/export/verify", payload),
 

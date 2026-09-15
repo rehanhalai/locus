@@ -1,13 +1,14 @@
 export type CaseStatus = "ACTIVE" | "ARCHIVED" | "CLOSED";
 
 export interface AuditLog {
-  id: string;
-  case_id: string;
-  timestamp: string;
+  id: number;
+  case_id?: string | null;
+  evidence_id?: string | null;
   action: string;
-  investigator: string;
-  ip_address?: string;
-  details?: Record<string, unknown> | string;
+  actor: string;
+  details?: string | null;
+  integrity_status: string;
+  timestamp: string;
 }
 
 export interface EvidenceItem {

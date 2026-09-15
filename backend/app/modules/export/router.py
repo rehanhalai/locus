@@ -74,6 +74,22 @@ def get_export_details(
 
 
 @router.get(
+    "/list/{case_id}",
+    response_model=list[EvidenceExportResponse],
+    summary="List all evidence exports for a case",
+    description="Retrieves all exported clips and signed sidecars belonging to the specified case.",
+)
+def list_case_exports(
+    case_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Fetches all export records for a case."""
+    exports = ExportService.list_exports_by_case(db, case_id)
+    return [_build_response_with_urls(exp, request) for exp in exports]
+
+
+@router.get(
     "/download/{export_id}/video",
     summary="Download exported zero-transcode MP4 video file",
     description="Direct binary download of the exported .mp4 evidence clip.",

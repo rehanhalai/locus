@@ -1,5 +1,6 @@
 import { api } from "./client";
 import type {
+  AuditLog,
   BlockDeviceInfo,
   Case,
   CaseCreatePayload,
@@ -20,6 +21,8 @@ export const casesApi = {
     api.patch<Case>(`/cases/${caseId}`, payload),
 
   deleteCase: (caseId: string) => api.delete<void>(`/cases/${caseId}`),
+
+  getCaseAuditLogs: (caseId: string) => api.get<AuditLog[]>(`/cases/${caseId}/audit-logs`),
 
   // Flow 01: Ingestion & Cloning
   ingestFile: (payload: { case_id: string; file_path: string; investigator?: string }) =>

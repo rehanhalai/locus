@@ -163,3 +163,15 @@ class CaseService:
         db.delete(case)
         db.commit()
         return True
+
+    @staticmethod
+    def get_case_audit_logs(db: Session, case_id: str) -> list[AuditLog]:
+        case = db.query(Case).filter(Case.id == case_id).first()
+        if not case:
+            raise KeyError(f"Case with ID '{case_id}' not found.")
+        return (
+            db.query(AuditLog)
+            .filter(AuditLog.case_id == case_id)
+            .order_by(AuditLog.timestamp.desc())
+            .all()
+        )

@@ -104,3 +104,31 @@ def test_list_cases_with_search_filter(client):
 
     # Clean up
     client.delete(f"/api/v1/cases/{case_id}")
+
+
+def test_get_case_audit_logs(client):
+    unique_num = f"CASE-AUD-{uuid.uuid4().hex[:6]}"
+    payload = {
+        "case_number": unique_num,
+        "case_name": "Audit Log Test Case",
+        "investigator": "Inspector Roy",
+    }
+    create_res = client.post("/api/v1/cases/", json=payload)
+    assert create_res.status_code == 201
+    case_id = create_res.json()["id"]
+
+    # Retrieve audit logs
+    audit_res = client.get(f"/api/v1/cases/{case_id}/audit-logs")
+    assert audit_res.status_code == 200
+    logs = audit_res.json()
+    assert len(logs) >= 1
+    assert logs[0]["action"] == "CASE_CREATED"
+    assert logs[0]["actor"] == "Inspector Roy"
+    assert logs[0]["integrity_status"] == "VERIFIED"
+
+    # Test 404 for nonexistent case
+    err_res = client.get("/api/v1/cases/case_nonexistent_9999/audit-logs")
+    assert err_res.status_code == 404
+
+    # Clean up
+    client.delete(f"/api/v1/cases/{case_id}")
