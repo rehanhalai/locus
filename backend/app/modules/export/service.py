@@ -446,3 +446,13 @@ class ExportService:
         )
         db.add(audit)
         db.commit()
+
+    @staticmethod
+    def list_exports_by_case(db: Session, case_id: str) -> list[EvidenceExport]:
+        """Returns all exported clips for a given case, ordered newest first."""
+        return (
+            db.query(EvidenceExport)
+            .filter(EvidenceExport.case_id == case_id)
+            .order_by(EvidenceExport.created_at.desc())
+            .all()
+        )

@@ -3,7 +3,13 @@ from sqlalchemy.orm import Session
 
 from app.db.models import CaseStatus
 from app.db.session import get_db
-from app.modules.cases.schemas import CaseCreate, CaseDetailResponse, CaseResponse, CaseUpdate
+from app.modules.cases.schemas import (
+    AuditLogResponse,
+    CaseCreate,
+    CaseDetailResponse,
+    CaseResponse,
+    CaseUpdate,
+)
 from app.modules.cases.service import CaseService
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
@@ -57,5 +63,13 @@ def delete_case(case_id: str, db: Session = Depends(get_db)):
     try:
         CaseService.delete_case(db, case_id)
         return None
+    except KeyError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get("/{case_id}/audit-logs", response_model=list[AuditLogResponse])
+def get_case_audit_logs(case_id: str, db: Session = Depends(get_db)):
+    try:
+        return CaseService.get_case_audit_logs(db, case_id)
     except KeyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

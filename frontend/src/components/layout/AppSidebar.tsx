@@ -65,7 +65,7 @@ const ROOM_ITEMS: NavRoom[] = [
     icon: Scale,
     hotkey: "3",
     roomNumber: 3,
-    disabled: true,
+    // disabled: true,
   },
   {
     id: "audit",
@@ -75,7 +75,7 @@ const ROOM_ITEMS: NavRoom[] = [
     icon: ScrollText,
     hotkey: "4",
     roomNumber: 4,
-    disabled: true,
+    // disabled: true,
   },
 ];
 
