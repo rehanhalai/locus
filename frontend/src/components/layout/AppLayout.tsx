@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { Topbar } from "./Topbar";
 import { TaskDrawer } from "./TaskDrawer";
 import { GlobalTaskWatcher } from "./GlobalTaskWatcher";
+import { CopilotDrawer } from "../chat";
 import { useHotkeys } from "../../hooks/useHotkeys";
 
 export function AppLayout() {
@@ -29,6 +30,9 @@ export function AppLayout() {
 
         {/* Slide-over Background Pipeline Tracker */}
         <TaskDrawer />
+
+        {/* Slide-over Forensic Copilot Drawer */}
+        <CopilotDrawer />
 
         {/* Persistent Floating Task HUD across Page Refreshes */}
         <GlobalTaskWatcher />

@@ -2,6 +2,7 @@ export * from "./case";
 export * from "./video";
 export * from "./analytics";
 export * from "./export";
+export * from "./copilot";
 
 export type RoomId = "cases" | "investigate" | "search" | "export" | "audit";
 

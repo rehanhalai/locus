@@ -14,7 +14,9 @@ class ChatMessage(BaseModel):
 
 
 class ToolCallAction(BaseModel):
-    tool: str = Field(..., description="Name of the tool invoked, e.g. seek_player, search_detections")
+    tool: str = Field(
+        ..., description="Name of the tool invoked, e.g. seek_player, search_detections"
+    )
     arguments: dict[str, Any] = Field(default_factory=dict, description="Tool input arguments")
     result: dict[str, Any] | None = Field(None, description="Result returned by tool execution")
 
@@ -30,4 +32,6 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     case_id: str = Field(..., description="Associated case ID")
     message: ChatMessage = Field(..., description="Generated assistant message")
-    actions: list[ToolCallAction] = Field(default_factory=list, description="Executed forensic tool actions")
+    actions: list[ToolCallAction] = Field(
+        default_factory=list, description="Executed forensic tool actions"
+    )
