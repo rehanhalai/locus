@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Bot,
   X,
@@ -7,6 +8,7 @@ import {
   FolderOpen,
   AlertCircle,
 } from "lucide-react";
+import type { ToolCallAction } from "@/types";
 import { useCopilotStore } from "@/stores/useCopilotStore";
 import { useCaseStore } from "@/stores/useCaseStore";
 import { MessageScroller } from "./MessageScroller";
@@ -14,6 +16,7 @@ import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
 
 export const CopilotDrawer: React.FC = () => {
+  const navigate = useNavigate();
   const isOpen = useCopilotStore((s) => s.isOpen);
   const closeCopilot = useCopilotStore((s) => s.closeCopilot);
   const toggleCopilot = useCopilotStore((s) => s.toggleCopilot);
@@ -28,6 +31,20 @@ export const CopilotDrawer: React.FC = () => {
   const activeCaseId = useCaseStore((s) => s.activeCaseId);
   const activeCaseNumber = useCaseStore((s) => s.activeCaseNumber);
   const activeCaseName = useCaseStore((s) => s.activeCaseName);
+
+  const handleExecuteAction = (action: ToolCallAction) => {
+    executeAction(action);
+
+    if (action.tool === "seek_player") {
+      navigate("/investigate");
+    } else if (action.tool === "search_detections") {
+      navigate("/search");
+    } else if (action.tool === "prepare_export") {
+      navigate("/export");
+    } else if (action.tool === "get_case_summary") {
+      navigate("/cases");
+    }
+  };
 
   // Global Hotkey Listener: Ctrl+Space or Alt+C toggles drawer
   useEffect(() => {
@@ -149,7 +166,7 @@ export const CopilotDrawer: React.FC = () => {
             <ChatBubble
               key={msg.id}
               message={msg}
-              onExecuteAction={executeAction}
+              onExecuteAction={handleExecuteAction}
             />
           ))}
         </MessageScroller>

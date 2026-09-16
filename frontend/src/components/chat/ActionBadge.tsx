@@ -138,9 +138,13 @@ export const ActionBadge: React.FC<ActionBadgeProps> = ({
             </div>
           </div>
         </div>
-        <div className="text-amber-400/80">
-          <CheckCircle2 className="w-4 h-4" />
-        </div>
+        <button
+          onClick={() => onExecuteAction?.(action)}
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-500 text-white font-medium text-[11px] transition-colors shadow-sm cursor-pointer"
+        >
+          <span>View</span>
+          <ExternalLink className="w-3 h-3" />
+        </button>
       </div>
     );
   }
