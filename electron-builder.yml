@@ -13,6 +13,8 @@ files:
 extraResources:
   - from: "backend/dist"
     to: "backend"
+  - from: "backend/models"
+    to: "backend/models"
 
 win:
   target:
@@ -37,4 +39,3 @@ linux:
   icon: electron/icon.png
   category: Utility
   artifactName: "LOCUS-${version}.${ext}"
-

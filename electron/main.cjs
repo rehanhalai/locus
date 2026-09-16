@@ -46,10 +46,13 @@ app.whenReady().then(async () => {
     // 1. Packaged Production App: Run bundled standalone executable
     const isWin = process.platform === "win32";
     const binaryName = isWin ? "locus-backend.exe" : "locus-backend";
-    const backendPath = path.join(process.resourcesPath, "backend", binaryName);
+    const backendDir = path.join(process.resourcesPath, "backend");
+    const backendPath = path.join(backendDir, binaryName);
+    const modelPath = path.join(backendDir, "models")
 
     console.log("[Electron] Spawning bundled backend:", backendPath);
     backend = spawn(backendPath, [], {
+      env: { ...process.env, MODEL_PATH: modelPath, LOCUS_MODELS_DIR: modelPath },
       stdio: "inherit",
     });
   } else {

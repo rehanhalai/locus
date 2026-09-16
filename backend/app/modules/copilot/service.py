@@ -3,7 +3,9 @@
 import asyncio
 import json
 import logging
+import os
 import re
+import sys
 from collections.abc import AsyncGenerator
 from datetime import datetime
 from pathlib import Path
@@ -25,6 +27,25 @@ from app.modules.copilot.tools import (
 logger = logging.getLogger("locus.copilot")
 
 
+def get_models_base_dir() -> Path:
+    """Resolves the models directory across dev and packaged Electron environments."""
+    # 1. Explicit env var passed by Electron
+    if "LOCUS_MODELS_DIR" in os.environ:
+        return Path(os.environ["LOCUS_MODELS_DIR"])
+    if "MODEL_PATH" in os.environ:
+        return Path(os.environ["MODEL_PATH"])
+    # 2. Packaged standalone executable (PyInstaller)
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).resolve().parent
+        if (exe_dir / "models").exists():
+            return exe_dir / "models"
+        if (exe_dir.parent / "models").exists():
+            return exe_dir.parent / "models"
+        return exe_dir / "models"
+    # 3. Local development: backend/models
+    return Path(__file__).resolve().parents[3] / "models"
+
+
 class CopilotEngine:
     """Singleton wrapper for onnxruntime-genai model and tokenizer."""
 
@@ -41,7 +62,8 @@ class CopilotEngine:
         return cls._instance
 
     def __init__(self) -> None:
-        self._model_path = Path(__file__).resolve().parents[3] / "models" / "qwen2.5-1.5b-onnx"
+        model_name = os.getenv("COPILOT_MODEL_NAME", "qwen2.5-1.5b-onnx")
+        self._model_path = get_models_base_dir() / model_name
         self._init_model()
 
     def _init_model(self) -> None:
