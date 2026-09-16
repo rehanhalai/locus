@@ -30,6 +30,9 @@ backend/data/
 
 # Large Third-Party Binaries (>100MB)
 backend/bin/windows/ffmpeg.exe
+backend/models/**/*.onnx
+backend/models/**/*.onnx_data
+
 
 build
 dist_desktop
