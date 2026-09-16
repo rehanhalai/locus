@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FolderOpen, Activity, AlertCircle, Clock, ChevronDown } from "lucide-react";
+import { FolderOpen, Activity, AlertCircle, Clock, ChevronDown, Bot } from "lucide-react";
 import { SidebarTrigger } from "../ui/sidebar";
 import { useCaseStore } from "../../stores/useCaseStore";
+import { useCopilotStore } from "../../stores/useCopilotStore";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { format } from "date-fns";
@@ -14,6 +15,8 @@ export function Topbar() {
   const activeCaseName = useCaseStore((s) => s.activeCaseName);
   const runningTasks = useCaseStore((s) => s.runningTasks);
   const toggleTaskDrawer = useCaseStore((s) => s.toggleTaskDrawer);
+  const toggleCopilot = useCopilotStore((s) => s.toggleCopilot);
+  const isCopilotOpen = useCopilotStore((s) => s.isOpen);
 
   const { data: healthData } = useQuery({
     queryKey: ["backend-health"],
@@ -108,6 +111,23 @@ export function Topbar() {
             <span className="text-[11px]">Tasks</span>
           </button>
         )}
+
+        {/* Copilot Drawer Trigger */}
+        <button
+          onClick={toggleCopilot}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-xs font-medium transition-all shadow-sm cursor-pointer ${
+            isCopilotOpen
+              ? "bg-indigo-600 text-white border-indigo-500 shadow-indigo-500/20"
+              : "bg-gradient-to-r from-indigo-500/15 to-cyan-500/15 hover:from-indigo-500/25 hover:to-cyan-500/25 border-indigo-500/30 text-indigo-300 hover:text-indigo-200"
+          }`}
+          title="Toggle Forensic Copilot (Ctrl+Space)"
+        >
+          <Bot className="size-3.5 text-indigo-400" />
+          <span>Copilot</span>
+          <kbd className="text-[10px] px-1 py-0.2 rounded bg-zinc-900/60 border border-zinc-700/50 text-zinc-400 font-mono">
+            ^Space
+          </kbd>
+        </button>
 
         {/* Engine Live Status Indicator */}
         <div
