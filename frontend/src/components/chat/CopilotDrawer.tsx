@@ -1,13 +1,6 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Bot,
-  X,
-  Trash2,
-  Cpu,
-  FolderOpen,
-  AlertCircle,
-} from "lucide-react";
+import { Bot, X, Trash2, Cpu, FolderOpen, AlertCircle } from "lucide-react";
 import type { ToolCallAction } from "@/types";
 import { useCopilotStore } from "@/stores/useCopilotStore";
 import { useCaseStore } from "@/stores/useCaseStore";
@@ -93,9 +86,7 @@ export const CopilotDrawer: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-zinc-100">
-                  Forensic Copilot
-                </h2>
+                <h2 className="text-sm font-semibold text-zinc-100">Forensic Copilot</h2>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
                   SLM
                 </span>
@@ -107,9 +98,7 @@ export const CopilotDrawer: React.FC = () => {
                   }`}
                 />
                 <span>
-                  {modelReady
-                    ? "Qwen 2.5 1.5B (Local ONNX)"
-                    : "Deterministic Forensic Mode"}
+                  {modelReady ? "Qwen 2.5 1.5B (Local ONNX)" : "Deterministic Forensic Mode"}
                 </span>
               </div>
             </div>
@@ -163,11 +152,7 @@ export const CopilotDrawer: React.FC = () => {
           autoScrollDependency={messages[messages.length - 1]?.content}
         >
           {messages.map((msg) => (
-            <ChatBubble
-              key={msg.id}
-              message={msg}
-              onExecuteAction={handleExecuteAction}
-            />
+            <ChatBubble key={msg.id} message={msg} onExecuteAction={handleExecuteAction} />
           ))}
         </MessageScroller>
 

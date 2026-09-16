@@ -88,8 +88,8 @@ export async function streamCopilotChat(
     }
 
     callbacks.onDone?.();
-  } catch (err: any) {
-    if (err.name === "AbortError") {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
       callbacks.onDone?.();
       return;
     }

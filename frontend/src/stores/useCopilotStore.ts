@@ -145,9 +145,7 @@ export const useCopilotStore = create<CopilotState>()(
               accumulatedContent += chunk;
               set((state) => ({
                 messages: state.messages.map((m) =>
-                  m.id === assistantMsgId
-                    ? { ...m, content: accumulatedContent }
-                    : m
+                  m.id === assistantMsgId ? { ...m, content: accumulatedContent } : m
                 ),
               }));
             },
@@ -155,9 +153,7 @@ export const useCopilotStore = create<CopilotState>()(
               accumulatedActions.push(action);
               set((state) => ({
                 messages: state.messages.map((m) =>
-                  m.id === assistantMsgId
-                    ? { ...m, actions: [...accumulatedActions] }
-                    : m
+                  m.id === assistantMsgId ? { ...m, actions: [...accumulatedActions] } : m
                 ),
               }));
 
@@ -203,10 +199,12 @@ export const useCopilotStore = create<CopilotState>()(
         if (action.tool === "seek_player") {
           const cam = action.arguments.camera_id;
           const ts = action.arguments.timestamp;
-          if (cam !== undefined) {
+          if (typeof cam === "number") {
             caseStore.setFocusedCameraId(cam);
+          } else if (cam !== undefined && cam !== null) {
+            caseStore.setFocusedCameraId(Number(cam) || null);
           }
-          if (ts) {
+          if (typeof ts === "string") {
             caseStore.setMasterPlayheadTime(ts);
           }
           caseStore.setActiveRoom("investigate");

@@ -2,8 +2,8 @@ export type MessageRole = "user" | "assistant" | "system";
 
 export interface ToolCallAction {
   tool: "get_case_summary" | "search_detections" | "seek_player" | "prepare_export" | string;
-  arguments: Record<string, any>;
-  result?: Record<string, any>;
+  arguments: Record<string, unknown>;
+  result?: Record<string, unknown>;
 }
 
 export interface ChatMessage {

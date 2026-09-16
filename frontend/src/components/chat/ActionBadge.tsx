@@ -14,15 +14,12 @@ interface ActionBadgeProps {
   onExecuteAction?: (action: ToolCallAction) => void;
 }
 
-export const ActionBadge: React.FC<ActionBadgeProps> = ({
-  action,
-  onExecuteAction,
-}) => {
+export const ActionBadge: React.FC<ActionBadgeProps> = ({ action, onExecuteAction }) => {
   const { tool, arguments: args, result } = action;
 
   if (tool === "seek_player") {
-    const cam = args.camera_id ?? 1;
-    const ts = args.timestamp ?? "";
+    const cam = typeof args.camera_id === "number" ? args.camera_id : Number(args.camera_id) || 1;
+    const ts = typeof args.timestamp === "string" ? args.timestamp : String(args.timestamp || "");
     const shortTs = ts.includes("T") ? ts.split("T")[1]?.slice(0, 8) : ts;
 
     return (
@@ -32,12 +29,8 @@ export const ActionBadge: React.FC<ActionBadgeProps> = ({
             <Compass className="w-3.5 h-3.5" />
           </div>
           <div>
-            <div className="font-medium text-cyan-200">
-              Seek Video &bull; Camera {cam}
-            </div>
-            <div className="text-[11px] text-zinc-400 font-mono">
-              Timestamp: {shortTs || ts}
-            </div>
+            <div className="font-medium text-cyan-200">Seek Video &bull; Camera {cam}</div>
+            <div className="text-[11px] text-zinc-400 font-mono">Timestamp: {shortTs || ts}</div>
           </div>
         </div>
         <button
@@ -52,8 +45,8 @@ export const ActionBadge: React.FC<ActionBadgeProps> = ({
   }
 
   if (tool === "search_detections") {
-    const label = args.label ?? "objects";
-    const totalFound = result?.total_found ?? 0;
+    const label = typeof args.label === "string" ? args.label : "objects";
+    const totalFound = typeof result?.total_found === "number" ? result.total_found : 0;
 
     return (
       <div className="flex items-center justify-between gap-3 p-2.5 my-1.5 rounded-lg border border-emerald-500/30 bg-emerald-950/20 text-xs">
@@ -62,9 +55,7 @@ export const ActionBadge: React.FC<ActionBadgeProps> = ({
             <Crosshair className="w-3.5 h-3.5" />
           </div>
           <div>
-            <div className="font-medium text-emerald-200 capitalize">
-              Object Search: {label}
-            </div>
+            <div className="font-medium text-emerald-200 capitalize">Object Search: {label}</div>
             <div className="text-[11px] text-zinc-400">
               {totalFound > 0 ? (
                 <span className="text-emerald-300 font-medium">
@@ -90,7 +81,7 @@ export const ActionBadge: React.FC<ActionBadgeProps> = ({
   }
 
   if (tool === "prepare_export") {
-    const cam = args.camera_id ?? 1;
+    const cam = typeof args.camera_id === "number" ? args.camera_id : Number(args.camera_id) || 1;
 
     return (
       <div className="flex items-center justify-between gap-3 p-2.5 my-1.5 rounded-lg border border-purple-500/30 bg-purple-950/20 text-xs">
@@ -99,9 +90,7 @@ export const ActionBadge: React.FC<ActionBadgeProps> = ({
             <DownloadCloud className="w-3.5 h-3.5" />
           </div>
           <div>
-            <div className="font-medium text-purple-200">
-              Court Evidence Export Slice
-            </div>
+            <div className="font-medium text-purple-200">Court Evidence Export Slice</div>
             <div className="text-[11px] text-zinc-400">
               Camera {cam} &bull; Forensic Signature Ready
             </div>
@@ -119,9 +108,9 @@ export const ActionBadge: React.FC<ActionBadgeProps> = ({
   }
 
   if (tool === "get_case_summary") {
-    const caseNum = result?.case_number;
-    const evCount = result?.evidence_count ?? 0;
-    const clipCount = result?.total_clips ?? 0;
+    const caseNum = typeof result?.case_number === "string" ? result.case_number : undefined;
+    const evCount = typeof result?.evidence_count === "number" ? result.evidence_count : 0;
+    const clipCount = typeof result?.total_clips === "number" ? result.total_clips : 0;
 
     return (
       <div className="flex items-center justify-between gap-3 p-2.5 my-1.5 rounded-lg border border-amber-500/30 bg-amber-950/20 text-xs">
@@ -130,11 +119,10 @@ export const ActionBadge: React.FC<ActionBadgeProps> = ({
             <FileText className="w-3.5 h-3.5" />
           </div>
           <div>
-            <div className="font-medium text-amber-200">
-              Case Forensic Audit Summary
-            </div>
+            <div className="font-medium text-amber-200">Case Forensic Audit Summary</div>
             <div className="text-[11px] text-zinc-400">
-              {caseNum ? `Case #${caseNum}` : "Overview"} &bull; {evCount} evidence &bull; {clipCount} clips
+              {caseNum ? `Case #${caseNum}` : "Overview"} &bull; {evCount} evidence &bull;{" "}
+              {clipCount} clips
             </div>
           </div>
         </div>

@@ -158,9 +158,7 @@ def execute_get_case_summary(db: Session, case_id: str) -> dict[str, Any]:
 
     # Exports
     total_exports = (
-        db.query(func.count(EvidenceExport.id))
-        .filter(EvidenceExport.case_id == case_id)
-        .scalar()
+        db.query(func.count(EvidenceExport.id)).filter(EvidenceExport.case_id == case_id).scalar()
         or 0
     )
 

@@ -40,9 +40,7 @@ def test_copilot_chat_summary_action(client):
 
     payload = {
         "case_id": case_id,
-        "messages": [
-            {"role": "user", "content": "Can you provide a summary of this case?"}
-        ],
+        "messages": [{"role": "user", "content": "Can you provide a summary of this case?"}],
         "stream": False,
     }
     chat_res = client.post("/api/v1/copilot/chat", json=payload)
@@ -95,9 +93,7 @@ def test_copilot_chat_search_detections(client, db):
 
     payload = {
         "case_id": case_id,
-        "messages": [
-            {"role": "user", "content": "Did we detect any knife in this footage?"}
-        ],
+        "messages": [{"role": "user", "content": "Did we detect any knife in this footage?"}],
         "stream": False,
     }
     res = client.post("/api/v1/copilot/chat", json=payload)
@@ -116,9 +112,7 @@ def test_copilot_chat_seek_player(client):
     case_id = f"case_{uuid.uuid4().hex[:8]}"
     payload = {
         "case_id": case_id,
-        "messages": [
-            {"role": "user", "content": "Jump to camera 2 at 2026-03-29T14:22:00"}
-        ],
+        "messages": [{"role": "user", "content": "Jump to camera 2 at 2026-03-29T14:22:00"}],
         "stream": False,
     }
     res = client.post("/api/v1/copilot/chat", json=payload)

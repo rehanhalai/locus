@@ -46,7 +46,9 @@ class CopilotEngine:
 
     def _init_model(self) -> None:
         if not self._model_path.exists():
-            logger.warning(f"Copilot model directory not found at {self._model_path}. Running in heuristic-only mode.")
+            logger.warning(
+                f"Copilot model directory not found at {self._model_path}. Running in heuristic-only mode."
+            )
             return
 
         genai_config = self._model_path / "genai_config.json"
@@ -121,7 +123,9 @@ RULES:
         query = text.lower().strip()
 
         # 1. Summary / Overview / Stats
-        if re.search(r"\b(summary|overview|status|stats|statistics|case info|total evidence)\b", query):
+        if re.search(
+            r"\b(summary|overview|status|stats|statistics|case info|total evidence)\b", query
+        ):
             return "get_case_summary", {"case_id": case_id}
 
         # 2. Seek player: e.g. "seek camera 2 at 2026-03-29T14:22:00", "jump to cam 1 14:30:00"
@@ -133,13 +137,17 @@ RULES:
         seek_verbs = re.search(r"\b(seek|jump|go to|play|navigate|view|switch)\b", query)
         if seek_verbs and (cam_match or time_match):
             cam_id = int(cam_match.group(1)) if cam_match else 1
-            timestamp = time_match.group(1) if time_match else datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+            timestamp = (
+                time_match.group(1) if time_match else datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+            )
             return "seek_player", {"camera_id": cam_id, "timestamp": timestamp}
 
         # 3. Export: e.g. "export camera 1 from ... to ...", "prepare export cam 2"
         if re.search(r"\b(export|prepare export|download clip|save slice)\b", query):
             cam_id = int(cam_match.group(1)) if cam_match else 1
-            start_time = time_match.group(1) if time_match else datetime.now().strftime("%Y-%m-%dT14:00:00")
+            start_time = (
+                time_match.group(1) if time_match else datetime.now().strftime("%Y-%m-%dT14:00:00")
+            )
             end_time = datetime.now().strftime("%Y-%m-%dT14:10:00")
             return "prepare_export", {
                 "case_id": case_id,

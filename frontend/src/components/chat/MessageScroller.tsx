@@ -4,7 +4,7 @@ import { ArrowDown } from "lucide-react";
 interface MessageScrollerProps {
   children: React.ReactNode;
   className?: string;
-  autoScrollDependency?: any;
+  autoScrollDependency?: unknown;
 }
 
 export const MessageScroller: React.FC<MessageScrollerProps> = ({

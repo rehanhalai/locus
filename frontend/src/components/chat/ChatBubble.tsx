@@ -8,10 +8,7 @@ interface ChatBubbleProps {
   onExecuteAction?: (action: ToolCallAction) => void;
 }
 
-export const ChatBubble: React.FC<ChatBubbleProps> = ({
-  message,
-  onExecuteAction,
-}) => {
+export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onExecuteAction }) => {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === "user";
 
@@ -22,9 +19,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
   };
 
   // Strip JSON code blocks that were tool invocations so user gets clean narrative
-  const cleanContent = message.content
-    .replace(/```(?:json)?\s*\{[\s\S]*?\}\s*```/g, "")
-    .trim();
+  const cleanContent = message.content.replace(/```(?:json)?\s*\{[\s\S]*?\}\s*```/g, "").trim();
 
   return (
     <div
@@ -76,11 +71,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
         {message.actions && message.actions.length > 0 && (
           <div className="space-y-1 my-1.5">
             {message.actions.map((act, idx) => (
-              <ActionBadge
-                key={idx}
-                action={act}
-                onExecuteAction={onExecuteAction}
-              />
+              <ActionBadge key={idx} action={act} onExecuteAction={onExecuteAction} />
             ))}
           </div>
         )}
